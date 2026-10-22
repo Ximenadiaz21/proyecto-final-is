@@ -11,7 +11,12 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
 from pathlib import Path
+#agregado
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
+#agredado
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -37,6 +42,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'cuentas',
+    'catalogo',
+    'prestamos',
+    'multas',
 ]
 
 MIDDLEWARE = [
@@ -71,11 +80,16 @@ WSGI_APPLICATION = 'biblioteca.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
-
+#DATABASES AGREGADO
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": "biblioteca",
+        "USER": os.environ["DB_USER"],
+        "PASSWORD": os.environ["DB_PASSWORD"],
+        "HOST": "localhost",
+        "PORT": "3306",
+        "OPTIONS": {"charset": "utf8mb4"},
     }
 }
 
@@ -125,3 +139,5 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+AUTH_USER_MODEL = "cuentas.Usuario"
