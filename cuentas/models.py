@@ -8,7 +8,8 @@ class Usuario(AbstractUser):
         ('BIBLIOTECARIO', 'Bibliotecario'),
     ]
     
-    tipo_usuario = models.CharField(max_length=15, choices=TIPO_CHOICES)
+    # 1. Aquí agregamos el default='BIBLIOTECARIO'
+    tipo_usuario = models.CharField(max_length=15, choices=TIPO_CHOICES, default='BIBLIOTECARIO')
     telefono = models.CharField(max_length=20, null=True, blank=True)
     bloqueado = models.BooleanField(default=False)
     motivo_bloqueo = models.CharField(max_length=255, null=True, blank=True)
@@ -18,6 +19,7 @@ class Usuario(AbstractUser):
         managed = False
 
     def __str__(self):
+        # 2. Y aquí reparamos el salto de línea
         return f"{self.username} - {self.get_tipo_usuario_display()}"
 
 class Carrera(models.Model):

@@ -1,3 +1,5 @@
 from django.contrib import admin
+from .models import Multa, Pago
 
-# Register your models here.
+admin.site.register(Multa)
+admin.site.register(Pago)
