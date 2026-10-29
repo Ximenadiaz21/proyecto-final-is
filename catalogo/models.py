@@ -48,7 +48,7 @@ class Libro(models.Model):
     class Meta:
         managed = False
         db_table = 'libro'
-        db_table_comment = 'TÝtulo u obra; los objetos fÝsicos estßn en ejemplar'
+        db_table_comment = 'Título u obra; los objetos fÝsicos estßn en ejemplar'
 
 class LibroAutor(models.Model):
     id = models.BigAutoField(primary_key=True)
@@ -60,7 +60,7 @@ class LibroAutor(models.Model):
         managed = False
         db_table = 'libro_autor'
         unique_together = (('libro', 'autor'),)
-        db_table_comment = 'Relaci¾n muchos a muchos entre libro y autor'
+        db_table_comment = 'Relación muchos a muchos entre libro y autor'
 
 class Ejemplar(models.Model):
     id = models.BigAutoField(primary_key=True)
@@ -75,3 +75,4 @@ class Ejemplar(models.Model):
         managed = False
         db_table = 'ejemplar'
         db_table_comment = 'Copia fÝsica de un libro'
+#clase ejemplar y estado de ejemplar
