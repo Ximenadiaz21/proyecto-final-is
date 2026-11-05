@@ -38,6 +38,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'db_table': 'usuario',
+                'managed': False,
             },
             managers=[
                 ('objects', django.contrib.auth.models.UserManager()),
