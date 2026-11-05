@@ -14,13 +14,21 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
 from django.contrib import admin
 from django.urls import path
 from django.contrib.auth import views as auth_views
+from cuentas import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # Rutas de autenticación
-    path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
+
+    path('login/', auth_views.LoginView.as_view(
+        template_name='login.html'
+    ), name='login'),
+
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+
+    # Muestra el panel principal de la biblioteca.
+    path('panel/', views.panel, name='panel'),
 ]
