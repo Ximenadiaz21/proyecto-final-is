@@ -1,44 +1,444 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iniciar Sesión | Biblioteca</title>
+    <title>Iniciar sesión | Biblioteca Escolar</title>
+
     <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+
+    <!-- Iconos de Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+          rel="stylesheet">
+
     <style>
-        body { background-color: #f6f8fb; }
-        .login-container { max-width: 400px; margin-top: 10vh; }
-        .btn-primary { background-color: #1d4e89; border-color: #1d4e89; }
-        .btn-primary:hover { background-color: #153b69; border-color: #153b69; }
+        :root {
+            --azul: #142b43;
+            --azul-claro: #284b68;
+            --dorado: #c5a16b;
+            --fondo: #f5f6f7;
+            --texto: #273747;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background-color: var(--fondo);
+            font-family: "Segoe UI", Arial, sans-serif;
+            color: var(--texto);
+        }
+
+        .login-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Lado izquierdo: bienvenida */
+        .welcome-panel {
+            width: 52%;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 55px 65px;
+            background:
+                linear-gradient(
+                    rgba(13, 35, 55, 0.78),
+                    rgba(13, 35, 55, 0.86)
+                ),
+                url("https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=1600&q=85");
+            background-size: cover;
+            background-position: center;
+            color: white;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .brand-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 52px;
+            height: 52px;
+            border: 1px solid rgba(255,255,255,0.5);
+            border-radius: 12px;
+            font-size: 26px;
+            color: var(--dorado);
+        }
+
+        .brand-name {
+            font-size: 19px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .brand-subtitle {
+            font-size: 12px;
+            letter-spacing: 2px;
+            opacity: 0.75;
+        }
+
+        .welcome-content {
+            max-width: 510px;
+        }
+
+        .welcome-label {
+            color: #e7c89a;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 24px;
+        }
+
+        .welcome-content h1 {
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(38px, 4vw, 58px);
+            line-height: 1.15;
+            margin-bottom: 24px;
+        }
+
+        .welcome-content p {
+            color: rgba(255,255,255,0.82);
+            line-height: 1.8;
+            font-size: 16px;
+            max-width: 430px;
+        }
+
+        .gold-line {
+            width: 65px;
+            height: 3px;
+            background: var(--dorado);
+            margin-bottom: 28px;
+        }
+
+        .welcome-footer {
+            font-size: 13px;
+            opacity: 0.75;
+        }
+
+        /* Lado derecho: formulario */
+        .form-panel {
+            width: 48%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 55px;
+            background: #ffffff;
+        }
+
+        .form-content {
+            width: 100%;
+            max-width: 410px;
+        }
+
+        .form-heading {
+            margin-bottom: 38px;
+        }
+
+        .form-heading .small-label {
+            color: #9b7950;
+            font-size: 12px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .form-heading h2 {
+            color: var(--azul);
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 36px;
+            margin-top: 13px;
+            margin-bottom: 12px;
+        }
+
+        .form-heading p {
+            color: #758392;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .form-label {
+            color: var(--azul);
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper > i {
+            position: absolute;
+            top: 50%;
+            left: 17px;
+            transform: translateY(-50%);
+            color: #8793a0;
+            font-size: 18px;
+        }
+
+        .form-control {
+            height: 54px;
+            padding: 12px 15px 12px 48px;
+            border: 1px solid #dce2e8;
+            border-radius: 9px;
+            background: #fbfcfd;
+            font-size: 14px;
+        }
+
+        .form-control:focus {
+            border-color: var(--azul-claro);
+            box-shadow: 0 0 0 3px rgba(40,75,104,0.12);
+        }
+
+        .btn-login {
+            width: 100%;
+            height: 54px;
+            margin-top: 10px;
+            color: white;
+            background: var(--azul);
+            border: none;
+            border-radius: 9px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .btn-login:hover {
+            background: var(--azul-claro);
+            color: white;
+        }
+
+        .form-divider {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 32px 0 23px;
+            color: #a1aab3;
+            font-size: 12px;
+        }
+
+        .form-divider::before,
+        .form-divider::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: #e7eaee;
+        }
+
+        .help-text {
+            text-align: center;
+            color: #7a8794;
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        .form-footer {
+            text-align: center;
+            margin-top: 55px;
+            font-size: 12px;
+            color: #9ba5af;
+        }
+
+        @media (max-width: 900px) {
+            .welcome-panel {
+                width: 43%;
+                padding: 35px;
+            }
+
+            .form-panel {
+                width: 57%;
+                padding: 35px;
+            }
+        }
+
+        @media (max-width: 700px) {
+            .login-layout {
+                flex-direction: column;
+            }
+
+            .welcome-panel {
+                width: 100%;
+                min-height: 230px;
+                padding: 28px;
+            }
+
+            .welcome-content h1 {
+                font-size: 30px;
+            }
+
+            .welcome-content p,
+            .welcome-label,
+            .gold-line,
+            .welcome-footer {
+                display: none;
+            }
+
+            .brand {
+                margin-bottom: 35px;
+            }
+
+            .form-panel {
+                width: 100%;
+                flex: 1;
+                padding: 45px 25px;
+            }
+        }
     </style>
 </head>
-<body>
-    <div class="container login-container">
-        <div class="card shadow-sm border-0">
-            <div class="card-body p-4">
-                <h3 class="text-center mb-4 text-primary fw-bold">Biblioteca Escolar</h3>
-                
-                {% if form.errors %}
-                    <div class="alert alert-danger p-2 text-center" role="alert">
-                        Usuario o contraseña incorrectos.
-                    </div>
-                {% endif %}
 
-                <form method="post">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="id_username" class="form-label text-muted fw-bold">Usuario</label>
-                        <input type="text" name="username" class="form-control" id="id_username" required>
-                    </div>
-                    <div class="mb-4">
-                        <label for="id_password" class="form-label text-muted fw-bold">Contraseña</label>
-                        <input type="password" name="password" class="form-control" id="id_password" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100 fw-bold">Iniciar Sesión</button>
-                </form>
+<body>
+
+<div class="login-layout">
+
+    <!-- PANEL DE BIENVENIDA -->
+    <section class="welcome-panel">
+
+        <div class="brand">
+            <div class="brand-icon">
+                <i class="bi bi-book-half"></i>
+            </div>
+
+            <div>
+                <div class="brand-name">BIBLIOTECA</div>
+                <div class="brand-subtitle">SISTEMA ESCOLAR</div>
             </div>
         </div>
-    </div>
+
+        <div class="welcome-content">
+            <div class="welcome-label">
+                Tu espacio de conocimiento
+            </div>
+
+            <h1>El conocimiento comienza aquí.</h1>
+
+            <div class="gold-line"></div>
+
+            <p>
+                Explora nuestro catálogo, descubre nuevas lecturas
+                y administra tus préstamos desde un solo lugar.
+                Todo lo que necesitas para seguir aprendiendo.
+            </p>
+        </div>
+
+        <div class="welcome-footer">
+            © 2026 Biblioteca Escolar · Sistema de Gestión
+        </div>
+
+    </section>
+
+    <!-- PANEL DE INICIO DE SESIÓN -->
+    <section class="form-panel">
+
+        <div class="form-content">
+
+            <div class="form-heading">
+                <span class="small-label">Portal de acceso</span>
+
+                <h2>Bienvenido de nuevo</h2>
+
+                <p>
+                    Ingresa tus credenciales para acceder
+                    a los servicios de la biblioteca.
+                </p>
+            </div>
+
+            {% if form.errors %}
+                <div class="alert alert-danger" role="alert">
+                    <i class="bi bi-exclamation-circle me-2"></i>
+                    Usuario o contraseña incorrectos.
+                </div>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+
+                {% if next %}
+                    <input type="hidden" name="next" value="{{ next }}">
+                {% endif %}
+
+                <!-- USUARIO -->
+                <div class="mb-4">
+                    <label for="id_username" class="form-label">
+                        Usuario
+                    </label>
+
+                    <div class="input-wrapper">
+                        <i class="bi bi-person"></i>
+
+                        <input
+                            type="text"
+                            name="username"
+                            id="id_username"
+                            class="form-control"
+                            placeholder="Ingresa tu usuario"
+                            value="{{ form.username.value|default_if_none:'' }}"
+                            autocomplete="username"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <!-- CONTRASEÑA -->
+                <div class="mb-4">
+                    <label for="id_password" class="form-label">
+                        Contraseña
+                    </label>
+
+                    <div class="input-wrapper">
+                        <i class="bi bi-lock"></i>
+
+                        <input
+                            type="password"
+                            name="password"
+                            id="id_password"
+                            class="form-control"
+                            placeholder="Ingresa tu contraseña"
+                            autocomplete="current-password"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <!-- BOTÓN -->
+                <button type="submit" class="btn btn-login">
+                    Iniciar sesión
+                    <i class="bi bi-arrow-right ms-2"></i>
+                </button>
+            </form>
+
+            <div class="form-divider">
+                Acceso institucional
+            </div>
+
+            <p class="help-text">
+                Este portal está disponible para estudiantes,
+                profesores y personal bibliotecario.
+                <br>
+                Si tienes problemas de acceso, contacta
+                al administrador de la biblioteca.
+            </p>
+
+            <div class="form-footer">
+                Biblioteca Escolar · Plataforma Académica
+            </div>
+
+        </div>
+
+    </section>
+
+</div>
+
 </body>
 </html>
