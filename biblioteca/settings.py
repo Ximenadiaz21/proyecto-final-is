@@ -141,3 +141,5 @@ MAILERS = {
 }
 
 AUTH_USER_MODEL = "cuentas.Usuario"
+LOGIN_REDIRECT_URL = '/admin/'  # Temporalmente los mandaremos al admin al loguearse
+LOGOUT_REDIRECT_URL = '/login/'
