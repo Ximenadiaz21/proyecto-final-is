@@ -6,293 +6,259 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Iniciar sesión | Biblioteca Escolar</title>
 
-    <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-          rel="stylesheet">
-
-    <!-- Iconos de Bootstrap -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
-          rel="stylesheet">
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
     <style>
         :root {
             --azul: #142b43;
-            --azul-claro: #284b68;
+            --azul-secundario: #284b68;
             --dorado: #c5a16b;
-            --fondo: #f5f6f7;
-            --texto: #273747;
-        }
-
-        * {
-            box-sizing: border-box;
+            --gris: #6e7b88;
         }
 
         body {
             margin: 0;
             min-height: 100vh;
-            background-color: var(--fondo);
             font-family: "Segoe UI", Arial, sans-serif;
-            color: var(--texto);
+            background-color: #ffffff;
+            color: #273747;
         }
 
-        .login-layout {
+        .login-container {
             display: flex;
             min-height: 100vh;
         }
 
-        /* Lado izquierdo: bienvenida */
-        .welcome-panel {
+        /* Sección izquierda */
+        .imagen-container {
             width: 52%;
-            position: relative;
+            padding: 50px 60px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: 55px 65px;
+            color: white;
+
             background:
                 linear-gradient(
                     rgba(13, 35, 55, 0.78),
                     rgba(13, 35, 55, 0.86)
                 ),
                 url("https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=1600&q=85");
+
             background-size: cover;
             background-position: center;
-            color: white;
         }
 
-        .brand {
+        .logo-biblioteca {
             display: flex;
             align-items: center;
             gap: 14px;
         }
 
-        .brand-icon {
+        .logo-icono {
+            width: 48px;
+            height: 48px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
             display: flex;
-            align-items: center;
             justify-content: center;
-            width: 52px;
-            height: 52px;
-            border: 1px solid rgba(255,255,255,0.5);
-            border-radius: 12px;
-            font-size: 26px;
+            align-items: center;
+            font-size: 24px;
             color: var(--dorado);
         }
 
-        .brand-name {
-            font-size: 19px;
-            font-weight: 700;
-            letter-spacing: 1px;
-        }
-
-        .brand-subtitle {
-            font-size: 12px;
-            letter-spacing: 2px;
-            opacity: 0.75;
-        }
-
-        .welcome-content {
-            max-width: 510px;
-        }
-
-        .welcome-label {
-            color: #e7c89a;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            font-size: 12px;
+        .logo-texto {
+            font-size: 21px;
             font-weight: 600;
-            margin-bottom: 24px;
+            letter-spacing: 0.5px;
         }
 
-        .welcome-content h1 {
+        .bienvenida {
+            max-width: 500px;
+        }
+
+        .bienvenida h1 {
             font-family: Georgia, "Times New Roman", serif;
-            font-size: clamp(38px, 4vw, 58px);
-            line-height: 1.15;
-            margin-bottom: 24px;
+            font-size: 52px;
+            font-weight: 400;
+            line-height: 1.2;
+            margin-bottom: 25px;
         }
 
-        .welcome-content p {
-            color: rgba(255,255,255,0.82);
-            line-height: 1.8;
-            font-size: 16px;
-            max-width: 430px;
-        }
-
-        .gold-line {
-            width: 65px;
+        .linea-dorada {
+            width: 55px;
             height: 3px;
-            background: var(--dorado);
-            margin-bottom: 28px;
+            background-color: var(--dorado);
+            margin-bottom: 25px;
         }
 
-        .welcome-footer {
-            font-size: 13px;
-            opacity: 0.75;
+        .bienvenida p {
+            font-size: 16px;
+            line-height: 1.9;
+            color: rgba(255, 255, 255, 0.85);
         }
 
-        /* Lado derecho: formulario */
-        .form-panel {
+        .pie-imagen {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.65);
+        }
+
+        /* Sección derecha */
+        .formulario-container {
             width: 48%;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 55px;
-            background: #ffffff;
+            padding: 50px;
         }
 
-        .form-content {
+        .formulario {
             width: 100%;
-            max-width: 410px;
+            max-width: 400px;
         }
 
-        .form-heading {
-            margin-bottom: 38px;
-        }
-
-        .form-heading .small-label {
-            color: #9b7950;
-            font-size: 12px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            font-weight: 700;
-        }
-
-        .form-heading h2 {
-            color: var(--azul);
+        .formulario h2 {
             font-family: Georgia, "Times New Roman", serif;
             font-size: 36px;
-            margin-top: 13px;
+            color: var(--azul);
             margin-bottom: 12px;
         }
 
-        .form-heading p {
-            color: #758392;
-            font-size: 14px;
+        .subtitulo {
+            font-size: 15px;
+            color: var(--gris);
             line-height: 1.7;
+            margin-bottom: 35px;
         }
 
         .form-label {
-            color: var(--azul);
+            font-size: 14px;
             font-weight: 600;
-            font-size: 13px;
-            margin-bottom: 10px;
+            color: var(--azul);
+            margin-bottom: 9px;
         }
 
-        .input-wrapper {
+        .campo {
             position: relative;
+            margin-bottom: 25px;
         }
 
-        .input-wrapper > i {
+        .campo i {
             position: absolute;
             top: 50%;
             left: 17px;
             transform: translateY(-50%);
-            color: #8793a0;
             font-size: 18px;
+            color: #8391a0;
         }
 
         .form-control {
             height: 54px;
-            padding: 12px 15px 12px 48px;
-            border: 1px solid #dce2e8;
-            border-radius: 9px;
-            background: #fbfcfd;
+            padding-left: 48px;
+            border: 1px solid #d7dfe6;
+            border-radius: 8px;
+            background-color: #fcfcfd;
             font-size: 14px;
         }
 
+        .form-control::placeholder {
+            color: #a4adb7;
+        }
+
         .form-control:focus {
-            border-color: var(--azul-claro);
-            box-shadow: 0 0 0 3px rgba(40,75,104,0.12);
+            border-color: var(--azul-secundario);
+            box-shadow: 0 0 0 3px rgba(40, 75, 104, 0.1);
         }
 
-        .btn-login {
+        .boton-login {
             width: 100%;
-            height: 54px;
-            margin-top: 10px;
-            color: white;
-            background: var(--azul);
+            height: 53px;
+            margin-top: 8px;
             border: none;
-            border-radius: 9px;
-            font-weight: 600;
-            transition: background 0.2s;
-        }
-
-        .btn-login:hover {
-            background: var(--azul-claro);
+            border-radius: 8px;
+            background-color: var(--azul);
             color: white;
+            font-size: 15px;
+            font-weight: 600;
+            transition: background-color 0.2s;
         }
 
-        .form-divider {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin: 32px 0 23px;
-            color: #a1aab3;
-            font-size: 12px;
+        .boton-login:hover {
+            background-color: var(--azul-secundario);
         }
 
-        .form-divider::before,
-        .form-divider::after {
-            content: "";
-            flex: 1;
-            height: 1px;
-            background: #e7eaee;
-        }
-
-        .help-text {
+        .informacion {
+            border-top: 1px solid #e7eaee;
+            margin-top: 35px;
+            padding-top: 25px;
             text-align: center;
-            color: #7a8794;
+        }
+
+        .informacion p {
             font-size: 13px;
-            line-height: 1.7;
+            line-height: 1.8;
+            color: #7c8894;
+            margin-bottom: 0;
         }
 
-        .form-footer {
+        .pie-formulario {
+            margin-top: 60px;
             text-align: center;
-            margin-top: 55px;
+            color: #a0a9b2;
             font-size: 12px;
-            color: #9ba5af;
         }
 
+        /* Adaptación a tablet y celular */
         @media (max-width: 900px) {
-            .welcome-panel {
+            .imagen-container {
                 width: 43%;
                 padding: 35px;
             }
 
-            .form-panel {
+            .formulario-container {
                 width: 57%;
                 padding: 35px;
+            }
+
+            .bienvenida h1 {
+                font-size: 40px;
             }
         }
 
         @media (max-width: 700px) {
-            .login-layout {
+            .login-container {
                 flex-direction: column;
             }
 
-            .welcome-panel {
+            .imagen-container {
                 width: 100%;
-                min-height: 230px;
+                min-height: 260px;
                 padding: 28px;
             }
 
-            .welcome-content h1 {
+            .bienvenida h1 {
                 font-size: 30px;
+                margin-top: 30px;
             }
 
-            .welcome-content p,
-            .welcome-label,
-            .gold-line,
-            .welcome-footer {
+            .bienvenida p {
+                font-size: 13px;
+                line-height: 1.6;
+            }
+
+            .pie-imagen {
                 display: none;
             }
 
-            .brand {
-                margin-bottom: 35px;
+            .formulario-container {
+                width: 100%;
+                padding: 45px 25px;
             }
 
-            .form-panel {
-                width: 100%;
-                flex: 1;
-                padding: 45px 25px;
+            .formulario h2 {
+                font-size: 31px;
             }
         }
     </style>
@@ -300,30 +266,25 @@
 
 <body>
 
-<div class="login-layout">
+<div class="login-container">
 
-    <!-- PANEL DE BIENVENIDA -->
-    <section class="welcome-panel">
+    <!-- Imagen y presentación -->
+    <section class="imagen-container">
 
-        <div class="brand">
-            <div class="brand-icon">
+        <div class="logo-biblioteca">
+            <div class="logo-icono">
                 <i class="bi bi-book-half"></i>
             </div>
 
-            <div>
-                <div class="brand-name">BIBLIOTECA</div>
-                <div class="brand-subtitle">SISTEMA ESCOLAR</div>
+            <div class="logo-texto">
+                Biblioteca Escolar
             </div>
         </div>
 
-        <div class="welcome-content">
-            <div class="welcome-label">
-                Tu espacio de conocimiento
-            </div>
+        <div class="bienvenida">
+            <h1>Bienvenido a nuestra biblioteca</h1>
 
-            <h1>El conocimiento comienza aquí.</h1>
-
-            <div class="gold-line"></div>
+            <div class="linea-dorada"></div>
 
             <p>
                 Explora nuestro catálogo, descubre nuevas lecturas
@@ -332,32 +293,28 @@
             </p>
         </div>
 
-        <div class="welcome-footer">
-            © 2026 Biblioteca Escolar · Sistema de Gestión
+        <div class="pie-imagen">
+            © 2026 Biblioteca Escolar
         </div>
 
     </section>
 
-    <!-- PANEL DE INICIO DE SESIÓN -->
-    <section class="form-panel">
+    <!-- Formulario -->
+    <section class="formulario-container">
 
-        <div class="form-content">
+        <div class="formulario">
 
-            <div class="form-heading">
-                <span class="small-label">Portal de acceso</span>
+            <h2>Iniciar sesión</h2>
 
-                <h2>Bienvenido de nuevo</h2>
-
-                <p>
-                    Ingresa tus credenciales para acceder
-                    a los servicios de la biblioteca.
-                </p>
-            </div>
+            <p class="subtitulo">
+                Ingresa tu usuario y contraseña para acceder
+                a tu cuenta de la biblioteca.
+            </p>
 
             {% if form.errors %}
                 <div class="alert alert-danger" role="alert">
                     <i class="bi bi-exclamation-circle me-2"></i>
-                    Usuario o contraseña incorrectos.
+                    El usuario o la contraseña son incorrectos.
                 </div>
             {% endif %}
 
@@ -368,70 +325,67 @@
                     <input type="hidden" name="next" value="{{ next }}">
                 {% endif %}
 
-                <!-- USUARIO -->
-                <div class="mb-4">
-                    <label for="id_username" class="form-label">
-                        Usuario
-                    </label>
+                <!-- Usuario -->
+                <label for="id_username" class="form-label">
+                    Usuario
+                </label>
 
-                    <div class="input-wrapper">
-                        <i class="bi bi-person"></i>
+                <div class="campo">
+                    <i class="bi bi-person"></i>
 
-                        <input
-                            type="text"
-                            name="username"
-                            id="id_username"
-                            class="form-control"
-                            placeholder="Ingresa tu usuario"
-                            value="{{ form.username.value|default_if_none:'' }}"
-                            autocomplete="username"
-                            required
-                        >
-                    </div>
+                    <input
+                        type="text"
+                        name="username"
+                        id="id_username"
+                        class="form-control"
+                        placeholder="Nombre de usuario"
+                        value="{{ form.username.value|default_if_none:'' }}"
+                        autocomplete="username"
+                        required
+                    >
                 </div>
 
-                <!-- CONTRASEÑA -->
-                <div class="mb-4">
-                    <label for="id_password" class="form-label">
-                        Contraseña
-                    </label>
+                <!-- Contraseña -->
+                <label for="id_password" class="form-label">
+                    Contraseña
+                </label>
 
-                    <div class="input-wrapper">
-                        <i class="bi bi-lock"></i>
+                <div class="campo">
+                    <i class="bi bi-lock"></i>
 
-                        <input
-                            type="password"
-                            name="password"
-                            id="id_password"
-                            class="form-control"
-                            placeholder="Ingresa tu contraseña"
-                            autocomplete="current-password"
-                            required
-                        >
-                    </div>
+                    <input
+                        type="password"
+                        name="password"
+                        id="id_password"
+                        class="form-control"
+                        placeholder="Contraseña"
+                        autocomplete="current-password"
+                        required
+                    >
                 </div>
 
-                <!-- BOTÓN -->
-                <button type="submit" class="btn btn-login">
+                <!-- Iniciar sesión -->
+                <button type="submit" class="boton-login">
                     Iniciar sesión
                     <i class="bi bi-arrow-right ms-2"></i>
                 </button>
+
             </form>
 
-            <div class="form-divider">
-                Acceso institucional
+            <div class="informacion">
+                <p>
+                    Acceso para estudiantes, profesores
+                    y personal bibliotecario.
+                </p>
+
+                <p class="mt-2">
+                    ¿Tienes problemas para ingresar?
+                    Contacta al personal de la biblioteca.
+                </p>
             </div>
 
-            <p class="help-text">
-                Este portal está disponible para estudiantes,
-                profesores y personal bibliotecario.
-                <br>
-                Si tienes problemas de acceso, contacta
-                al administrador de la biblioteca.
-            </p>
-
-            <div class="form-footer">
-                Biblioteca Escolar · Plataforma Académica
+            <div class="pie-formulario">
+                Sistema de Gestión de Biblioteca Escolar
             </div>
 
         </div>
