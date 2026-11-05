@@ -1,0 +1,648 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{{ titulo }} | Biblioteca Escolar</title>
+
+    <!-- Carga Bootstrap y los iconos -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --azul: #142b43;
+            --azul-secundario: #284b68;
+            --dorado: #c5a16b;
+            --fondo: #f5f6f8;
+            --gris: #6e7b88;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background-color: var(--fondo);
+            font-family: "Segoe UI", Arial, sans-serif;
+            color: #273747;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Da formato a la barra superior */
+        .navbar-biblioteca {
+            background-color: var(--azul);
+            padding: 12px 0;
+        }
+
+        .marca {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: white;
+            text-decoration: none;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .marca:hover {
+            color: white;
+        }
+
+        .marca i {
+            color: var(--dorado);
+            font-size: 26px;
+        }
+
+        .usuario-navbar {
+            color: #dce3e9;
+            font-size: 13px;
+        }
+
+        .btn-salir {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.5);
+            border-radius: 7px;
+            padding: 8px 16px;
+            color: white;
+            font-size: 13px;
+            transition: 0.2s;
+        }
+
+        .btn-salir:hover {
+            background-color: white;
+            color: var(--azul);
+        }
+
+        /* Organiza el contenido principal */
+        .contenido {
+            width: 100%;
+            max-width: 1120px;
+            margin: 25px auto 10px;
+            padding: 0 24px;
+            flex: 1;
+        }
+
+        /* Da formato al mensaje de bienvenida */
+        .etiqueta {
+            color: #9c794b;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 7px;
+        }
+
+        .bienvenida h1 {
+            color: var(--azul);
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 32px;
+            font-weight: 400;
+            margin-bottom: 8px;
+        }
+
+        .bienvenida p {
+            color: var(--gris);
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 0;
+        }
+
+        .linea-dorada {
+            width: 55px;
+            height: 3px;
+            margin: 13px 0 20px;
+            background-color: var(--dorado);
+        }
+
+        .titulo-seccion {
+            color: var(--azul);
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 23px;
+            margin-bottom: 15px;
+        }
+
+        /* Da formato a las tarjetas */
+        .tarjetas {
+            --bs-gutter-x: 18px;
+            --bs-gutter-y: 14px;
+        }
+
+        .tarjeta {
+            height: 100%;
+            min-height: 168px;
+            background-color: white;
+            border: 1px solid #e4e8ed;
+            border-radius: 11px;
+            padding: 17px 20px;
+            transition: 0.2s;
+        }
+
+        .tarjeta:hover {
+            border-color: #c7d1da;
+            box-shadow: 0 5px 18px rgba(20,43,67,0.06);
+        }
+
+        .tarjeta-icono {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            background-color: #f7f3ec;
+            border-radius: 8px;
+            margin-bottom: 11px;
+            color: #a47e49;
+            font-size: 19px;
+        }
+
+        .tarjeta h3 {
+            color: var(--azul);
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .tarjeta p {
+            color: var(--gris);
+            font-size: 12px;
+            line-height: 1.5;
+            margin-bottom: 9px;
+        }
+
+        .estado {
+            display: inline-block;
+            padding: 4px 9px;
+            background-color: #f1f3f5;
+            color: #697784;
+            border-radius: 5px;
+            font-size: 11px;
+        }
+
+        /* Da formato al acceso del administrador */
+        .informacion {
+            margin-top: 16px;
+            padding: 14px 20px;
+            background-color: white;
+            border: 1px solid #e4e8ed;
+            border-radius: 10px;
+        }
+
+        .informacion h4 {
+            color: var(--azul);
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .informacion p {
+            color: var(--gris);
+            font-size: 12px;
+            line-height: 1.5;
+            margin-bottom: 0;
+        }
+
+        .enlace-admin {
+            display: inline-block;
+            margin-top: 6px;
+            color: var(--azul-secundario);
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .enlace-admin:hover {
+            text-decoration: underline;
+        }
+
+        /* Da formato al pie de página */
+        .pie-pagina {
+            text-align: center;
+            color: #98a2ad;
+            font-size: 11px;
+            padding: 12px 15px;
+        }
+
+        /* Ajusta la página en pantallas grandes y bajas */
+        @media (min-width: 992px) and (max-height: 800px) {
+            .contenido {
+                margin-top: 15px;
+            }
+
+            .tarjeta {
+                min-height: 145px;
+                padding: 13px 17px;
+            }
+
+            .tarjeta-icono {
+                width: 32px;
+                height: 32px;
+                margin-bottom: 7px;
+                font-size: 17px;
+            }
+
+            .tarjeta p {
+                margin-bottom: 5px;
+            }
+
+            .linea-dorada {
+                margin: 10px 0 14px;
+            }
+
+            .titulo-seccion {
+                margin-bottom: 10px;
+            }
+        }
+
+        /* Organiza las tarjetas en tablet */
+        @media (max-width: 991px) {
+            .contenido {
+                max-width: 800px;
+            }
+
+            .tarjeta {
+                min-height: 175px;
+            }
+        }
+
+        /* Ajusta el contenido en celular */
+        @media (max-width: 700px) {
+            .navbar-biblioteca {
+                padding: 12px 0;
+            }
+
+            .marca {
+                font-size: 17px;
+            }
+
+            .marca i {
+                font-size: 22px;
+            }
+
+            .usuario-navbar {
+                display: none;
+            }
+
+            .btn-salir {
+                padding: 7px 11px;
+                font-size: 12px;
+            }
+
+            .contenido {
+                margin: 25px auto;
+                padding: 0 18px;
+            }
+
+            .bienvenida h1 {
+                font-size: 29px;
+            }
+
+            .titulo-seccion {
+                font-size: 22px;
+            }
+
+            .tarjeta {
+                min-height: auto;
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Muestra la barra de navegación -->
+    <nav class="navbar-biblioteca">
+        <div class="container d-flex justify-content-between align-items-center">
+
+            <!-- Muestra el nombre de la biblioteca -->
+            <a href="{% url 'panel' %}" class="marca">
+                <i class="bi bi-book-half"></i>
+                Biblioteca Escolar
+            </a>
+
+            <div class="d-flex align-items-center gap-4">
+
+                <!-- Muestra el usuario que inició sesión -->
+                <span class="usuario-navbar">
+                    <i class="bi bi-person-circle me-2"></i>
+                    {{ usuario.username }}
+                </span>
+
+                <!-- Cierra la sesión del usuario -->
+                <form method="post" action="{% url 'logout' %}" class="m-0">
+                    {% csrf_token %}
+
+                    <button type="submit" class="btn-salir">
+                        Cerrar sesión
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </nav>
+
+    <!-- Muestra el contenido principal -->
+    <main class="contenido">
+
+        <!-- Muestra la bienvenida según el usuario -->
+        <section class="bienvenida">
+
+            <div class="etiqueta">
+                Sistema de Gestión de Biblioteca
+            </div>
+
+            <h1>
+                Bienvenido, {{ usuario.first_name|default:usuario.username }}
+            </h1>
+
+            <p>
+                {% if usuario.tipo_usuario == 'BIBLIOTECARIO' %}
+
+                    Administra los servicios y recursos de la biblioteca
+                    desde un solo lugar.
+
+                {% elif usuario.tipo_usuario == 'ESTUDIANTE' %}
+
+                    Consulta nuestro catálogo y administra
+                    tus préstamos y reservas.
+
+                {% elif usuario.tipo_usuario == 'PROFESOR' %}
+
+                    Consulta los recursos de la biblioteca
+                    y administra tus préstamos.
+
+                {% else %}
+
+                    Bienvenido al sistema de Biblioteca Escolar.
+
+                {% endif %}
+            </p>
+
+            <div class="linea-dorada"></div>
+        </section>
+
+        <!-- Muestra el panel del bibliotecario -->
+        {% if usuario.tipo_usuario == 'BIBLIOTECARIO' %}
+
+            <h2 class="titulo-seccion">
+                Administración de biblioteca
+            </h2>
+
+            <div class="row tarjetas">
+
+                <!-- Muestra la sección de catálogo -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="tarjeta">
+                        <div class="tarjeta-icono">
+                            <i class="bi bi-bookshelf"></i>
+                        </div>
+
+                        <h3>Catálogo de libros</h3>
+
+                        <p>
+                            Consulta y administra libros, autores,
+                            categorías y ejemplares.
+                        </p>
+
+                        <span class="estado">En desarrollo</span>
+                    </div>
+                </div>
+
+                <!-- Muestra la sección de usuarios -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="tarjeta">
+                        <div class="tarjeta-icono">
+                            <i class="bi bi-people"></i>
+                        </div>
+
+                        <h3>Usuarios</h3>
+
+                        <p>
+                            Gestiona las cuentas de estudiantes,
+                            profesores y personal bibliotecario.
+                        </p>
+
+                        <span class="estado">En desarrollo</span>
+                    </div>
+                </div>
+
+                <!-- Muestra la sección de préstamos -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="tarjeta">
+                        <div class="tarjeta-icono">
+                            <i class="bi bi-journal-check"></i>
+                        </div>
+
+                        <h3>Préstamos</h3>
+
+                        <p>
+                            Revisa solicitudes y registra
+                            las entregas y devoluciones.
+                        </p>
+
+                        <span class="estado">En desarrollo</span>
+                    </div>
+                </div>
+
+                <!-- Muestra la sección de multas -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="tarjeta">
+                        <div class="tarjeta-icono">
+                            <i class="bi bi-receipt"></i>
+                        </div>
+
+                        <h3>Multas y pagos</h3>
+
+                        <p>
+                            Consulta multas pendientes y registra
+                            pagos o condonaciones.
+                        </p>
+
+                        <span class="estado">En desarrollo</span>
+                    </div>
+                </div>
+
+                <!-- Muestra la sección de reservas -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="tarjeta">
+                        <div class="tarjeta-icono">
+                            <i class="bi bi-calendar-check"></i>
+                        </div>
+
+                        <h3>Reservas</h3>
+
+                        <p>
+                            Revisa los libros reservados
+                            y las solicitudes pendientes.
+                        </p>
+
+                        <span class="estado">En desarrollo</span>
+                    </div>
+                </div>
+
+                <!-- Muestra la sección de reportes -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="tarjeta">
+                        <div class="tarjeta-icono">
+                            <i class="bi bi-bar-chart"></i>
+                        </div>
+
+                        <h3>Reportes</h3>
+
+                        <p>
+                            Consulta la actividad de préstamos,
+                            libros y multas de la biblioteca.
+                        </p>
+
+                        <span class="estado">En desarrollo</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Permite abrir Django Admin si tiene permisos -->
+            {% if usuario.is_staff %}
+
+                <div class="informacion">
+
+                    <h4>Administración del sistema</h4>
+
+                    <p>
+                        Mientras desarrollamos las funciones del panel,
+                        puedes gestionar los registros desde Django Admin.
+                    </p>
+
+                    <a href="{% url 'admin:index' %}" class="enlace-admin">
+                        Abrir administrador
+                        <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+
+                </div>
+
+            {% endif %}
+
+        <!-- Muestra el panel del estudiante -->
+        {% elif usuario.tipo_usuario == 'ESTUDIANTE' %}
+
+            <h2 class="titulo-seccion">Mis servicios</h2>
+
+            <div class="row tarjetas">
+
+                <!-- Muestra la búsqueda de libros -->
+                <div class="col-md-6">
+                    <div class="tarjeta">
+                        <div class="tarjeta-icono">
+                            <i class="bi bi-search"></i>
+                        </div>
+
+                        <h3>Buscar libros</h3>
+
+                        <p>
+                            Explora el catálogo y consulta
+                            los ejemplares disponibles.
+                        </p>
+
+                        <span class="estado">En desarrollo</span>
+                    </div>
+                </div>
+
+                <!-- Muestra los préstamos del estudiante -->
+                <div class="col-md-6">
+                    <div class="tarjeta">
+                        <div class="tarjeta-icono">
+                            <i class="bi bi-journal-bookmark"></i>
+                        </div>
+
+                        <h3>Mis préstamos</h3>
+
+                        <p>
+                            Consulta tus préstamos,
+                            renovaciones y reservas.
+                        </p>
+
+                        <span class="estado">En desarrollo</span>
+                    </div>
+                </div>
+
+            </div>
+
+        <!-- Muestra el panel del profesor -->
+        {% elif usuario.tipo_usuario == 'PROFESOR' %}
+
+            <h2 class="titulo-seccion">Mis servicios</h2>
+
+            <div class="row tarjetas">
+
+                <!-- Muestra la búsqueda de libros -->
+                <div class="col-md-6">
+                    <div class="tarjeta">
+                        <div class="tarjeta-icono">
+                            <i class="bi bi-search"></i>
+                        </div>
+
+                        <h3>Buscar libros</h3>
+
+                        <p>
+                            Consulta el catálogo y solicita
+                            los libros que necesites.
+                        </p>
+
+                        <span class="estado">En desarrollo</span>
+                    </div>
+                </div>
+
+                <!-- Muestra los préstamos del profesor -->
+                <div class="col-md-6">
+                    <div class="tarjeta">
+                        <div class="tarjeta-icono">
+                            <i class="bi bi-journal-bookmark"></i>
+                        </div>
+
+                        <h3>Mis préstamos</h3>
+
+                        <p>
+                            Consulta tus préstamos,
+                            renovaciones y reservas.
+                        </p>
+
+                        <span class="estado">En desarrollo</span>
+                    </div>
+                </div>
+
+                <!-- Muestra las sugerencias de adquisición -->
+                <div class="col-md-6">
+                    <div class="tarjeta">
+                        <div class="tarjeta-icono">
+                            <i class="bi bi-plus-circle"></i>
+                        </div>
+
+                        <h3>Sugerir un libro</h3>
+
+                        <p>
+                            Envía propuestas de libros para
+                            ampliar el catálogo escolar.
+                        </p>
+
+                        <span class="estado">En desarrollo</span>
+                    </div>
+                </div>
+
+            </div>
+
+        {% endif %}
+
+    </main>
+
+    <!-- Muestra el pie de página -->
+    <footer class="pie-pagina">
+        © 2026 Biblioteca Escolar · Sistema de Gestión
+    </footer>
+
+</body>
+</html>
