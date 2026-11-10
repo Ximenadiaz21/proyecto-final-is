@@ -1,4 +1,3 @@
-
 from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import RedirectView
@@ -33,4 +32,7 @@ urlpatterns = [
 
     # Conecta el catálogo de libros
     path('catalogo/', include('catalogo.urls')),
+
+    # Conecta los préstamos
+    path('prestamos/', include('prestamos.urls')),
 ]
