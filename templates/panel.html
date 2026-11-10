@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -351,6 +350,16 @@
     <!-- Muestra el contenido principal -->
     <main class="contenido">
 
+        <!-- Muestra los mensajes del sistema -->
+        {% if messages %}
+            {% for mensaje in messages %}
+                <div class="alert alert-{% if mensaje.tags == 'error' %}danger{% else %}{{ mensaje.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                    {{ mensaje }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
         <!-- Muestra la bienvenida según el usuario -->
         <section class="bienvenida">
 
@@ -451,7 +460,11 @@
                             las entregas y devoluciones.
                         </p>
 
-                        <span class="estado">En desarrollo</span>
+                        <!-- Abre la gestión de préstamos -->
+                        <a href="{% url 'gestion_prestamos' %}" class="enlace-admin">
+                            Gestionar préstamos
+                            <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
                     </div>
                 </div>
 
@@ -575,7 +588,11 @@
                             renovaciones y reservas.
                         </p>
 
-                        <span class="estado">En desarrollo</span>
+                        <!-- Abre los préstamos del usuario -->
+                        <a href="{% url 'mis_prestamos' %}" class="enlace-admin">
+                            Ver mis préstamos
+                            <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
                     </div>
                 </div>
 
@@ -624,7 +641,11 @@
                             renovaciones y reservas.
                         </p>
 
-                        <span class="estado">En desarrollo</span>
+                        <!-- Abre los préstamos del usuario -->
+                        <a href="{% url 'mis_prestamos' %}" class="enlace-admin">
+                            Ver mis préstamos
+                            <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
                     </div>
                 </div>
 
@@ -657,5 +678,6 @@
         © 2026 Biblioteca Escolar · Sistema de Gestión
     </footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
