@@ -184,6 +184,20 @@
             font-size: 11px;
         }
 
+        /* Da formato a los enlaces */
+        .enlace-admin {
+            display: inline-block;
+            margin-top: 6px;
+            color: var(--azul-secundario);
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .enlace-admin:hover {
+            text-decoration: underline;
+        }
+
         /* Da formato al acceso del administrador */
         .informacion {
             margin-top: 16px;
@@ -205,19 +219,6 @@
             font-size: 12px;
             line-height: 1.5;
             margin-bottom: 0;
-        }
-
-        .enlace-admin {
-            display: inline-block;
-            margin-top: 6px;
-            color: var(--azul-secundario);
-            text-decoration: none;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .enlace-admin:hover {
-            text-decoration: underline;
         }
 
         /* Da formato al pie de página */
@@ -410,7 +411,11 @@
                             categorías y ejemplares.
                         </p>
 
-                        <span class="estado">En desarrollo</span>
+                        <!-- Abre el catálogo de libros -->
+                        <a href="{% url 'lista_libros' %}" class="enlace-admin">
+                            Ver catálogo
+                            <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
                     </div>
                 </div>
 
@@ -548,7 +553,11 @@
                             los ejemplares disponibles.
                         </p>
 
-                        <span class="estado">En desarrollo</span>
+                        <!-- Abre el catálogo de libros -->
+                        <a href="{% url 'lista_libros' %}" class="enlace-admin">
+                            Ver catálogo
+                            <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
                     </div>
                 </div>
 
@@ -593,7 +602,11 @@
                             los libros que necesites.
                         </p>
 
-                        <span class="estado">En desarrollo</span>
+                        <!-- Abre el catálogo de libros -->
+                        <a href="{% url 'lista_libros' %}" class="enlace-admin">
+                            Ver catálogo
+                            <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
                     </div>
                 </div>
 

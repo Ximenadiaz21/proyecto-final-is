@@ -116,9 +116,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'es-mx'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Mexico_City'
 
 USE_I18N = True
 
@@ -140,6 +140,16 @@ MAILERS = {
     },
 }
 
-AUTH_USER_MODEL = "cuentas.Usuario"
-LOGIN_REDIRECT_URL = '/admin/'  # Temporalmente los mandaremos al admin al loguearse
-LOGOUT_REDIRECT_URL = '/login/'
+
+
+# Utiliza el modelo de usuarios del proyecto
+AUTH_USER_MODEL = 'cuentas.Usuario'
+
+# Envía al usuario a su panel después de iniciar sesión
+LOGIN_REDIRECT_URL = 'panel'
+
+# Envía al login cuando se necesita iniciar sesión
+LOGIN_URL = 'login'
+
+# Regresa al login al cerrar sesión
+LOGOUT_REDIRECT_URL = 'login'
