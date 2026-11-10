@@ -4,6 +4,12 @@ from django.db.models import Q, Count, Prefetch
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 
+from django.shortcuts import redirect
+from django.contrib import messages
+from django.db import transaction
+from .forms import LibroForm, AutorForm, EditorialForm, CategoriaForm
+from .models import LibroAutor
+
 from .models import Libro, Categoria, LibroAutor, Ejemplar
 
 
@@ -147,3 +153,248 @@ def gestionar_libros(request):
     }
 
     return render(request, 'catalogo/gestionar_libros.html', contexto)
+
+
+# Permite al bibliotecario registrar un libro nuevo
+@login_required
+def nuevo_libro(request):
+
+    # Solo los bibliotecarios activos pueden registrar libros
+    if request.user.tipo_usuario != 'BIBLIOTECARIO' or request.user.bloqueado:
+        raise PermissionDenied
+
+    # Si se envía el formulario, comprueba y guarda sus datos
+    if request.method == 'POST':
+        formulario = LibroForm(request.POST)
+
+        if formulario.is_valid():
+            with transaction.atomic():
+
+                # Guarda el libro como activo en MySQL
+                libro = formulario.save(commit=False)
+                libro.activo = 1
+                libro.save()
+
+                # Relaciona el libro con el autor seleccionado
+                autor = formulario.cleaned_data['autor']
+
+                LibroAutor.objects.create(
+                    libro=libro,
+                    autor=autor,
+                    orden=1
+                )
+
+            messages.success(
+                request,
+                'El libro se registró correctamente.'
+            )
+
+            return redirect('gestionar_libros')
+
+    else:
+        # Muestra un formulario vacío al entrar por primera vez
+        formulario = LibroForm()
+
+    contexto = {
+        'formulario': formulario,
+        'titulo_pagina': 'Registrar nuevo libro',
+    }
+
+    return render(request, 'catalogo/formulario_libro.html', contexto)
+
+
+
+# Permite al bibliotecario registrar nuevos autores
+@login_required
+def nuevo_autor(request):
+
+    # Comprueba que el usuario sea un bibliotecario activo
+    if request.user.tipo_usuario != 'BIBLIOTECARIO' or request.user.bloqueado:
+        raise PermissionDenied
+
+    # Procesa los datos enviados por el bibliotecario
+    if request.method == 'POST':
+        formulario = AutorForm(request.POST)
+
+        if formulario.is_valid():
+            autor = formulario.save()
+
+            messages.success(
+                request,
+                f'El autor {autor.nombre} {autor.apellidos} se registró correctamente.'
+            )
+
+            return redirect('nuevo_libro')
+
+    else:
+        formulario = AutorForm()
+
+    contexto = {
+        'formulario': formulario,
+        'titulo_pagina': 'Registrar nuevo autor',
+        'descripcion_pagina': 'Agrega un autor para asociarlo a los libros de la biblioteca.',
+    }
+
+    return render(request, 'catalogo/formulario_autor.html', contexto)
+
+
+# Permite al bibliotecario registrar nuevas editoriales
+@login_required
+def nueva_editorial(request):
+
+    # Comprueba que el usuario sea un bibliotecario activo
+    if request.user.tipo_usuario != 'BIBLIOTECARIO' or request.user.bloqueado:
+        raise PermissionDenied
+
+    # Guarda la editorial cuando el formulario es válido
+    if request.method == 'POST':
+        formulario = EditorialForm(request.POST)
+
+        if formulario.is_valid():
+            editorial = formulario.save()
+
+            messages.success(
+                request,
+                f'La editorial {editorial.nombre} se registró correctamente.'
+            )
+
+            return redirect('nuevo_libro')
+
+    else:
+        formulario = EditorialForm()
+
+    contexto = {
+        'formulario': formulario,
+        'titulo_pagina': 'Registrar nueva editorial',
+        'descripcion_pagina': 'Agrega una editorial para asociarla a los libros.',
+        'titulo_seccion': 'Información de la editorial',
+        'texto_boton': 'Guardar editorial',
+    }
+
+    return render(request, 'catalogo/formulario_dato.html', contexto)
+
+
+# Permite al bibliotecario registrar nuevas categorías
+@login_required
+def nueva_categoria(request):
+
+    # Comprueba que el usuario sea un bibliotecario activo
+    if request.user.tipo_usuario != 'BIBLIOTECARIO' or request.user.bloqueado:
+        raise PermissionDenied
+
+    # Guarda la categoría cuando el formulario es válido
+    if request.method == 'POST':
+        formulario = CategoriaForm(request.POST)
+
+        if formulario.is_valid():
+            categoria = formulario.save()
+
+            messages.success(
+                request,
+                f'La categoría {categoria.nombre} se registró correctamente.'
+            )
+
+            return redirect('nuevo_libro')
+
+    else:
+        formulario = CategoriaForm()
+
+    contexto = {
+        'formulario': formulario,
+        'titulo_pagina': 'Registrar nueva categoría',
+        'descripcion_pagina': 'Agrega una categoría para organizar los libros.',
+        'titulo_seccion': 'Información de la categoría',
+        'texto_boton': 'Guardar categoría',
+    }
+
+    return render(request, 'catalogo/formulario_dato.html', contexto)
+
+
+# Permite al bibliotecario modificar los datos de un libro existente
+@login_required
+def editar_libro(request, libro_id):
+
+    # Comprueba que el usuario tenga permisos de bibliotecario
+    if request.user.tipo_usuario != 'BIBLIOTECARIO' or request.user.bloqueado:
+        raise PermissionDenied
+
+    # Busca el libro que se desea editar
+    libro = get_object_or_404(Libro, id=libro_id)
+
+    if request.method == 'POST':
+        formulario = LibroForm(request.POST, instance=libro)
+
+        if formulario.is_valid():
+            with transaction.atomic():
+
+                # Actualiza los datos bibliográficos del libro
+                libro = formulario.save()
+
+                # Obtiene el autor seleccionado
+                autor = formulario.cleaned_data['autor']
+
+                # Actualiza la relación del autor principal
+                relacion = LibroAutor.objects.filter(
+                    libro=libro
+                ).order_by('orden', 'id').first()
+
+                if relacion:
+                    relacion.autor = autor
+                    relacion.save()
+                else:
+                    LibroAutor.objects.create(
+                        libro=libro,
+                        autor=autor,
+                        orden=1
+                    )
+
+            messages.success(
+                request,
+                'Los datos del libro se actualizaron correctamente.'
+            )
+
+            return redirect('gestionar_libros')
+
+    else:
+        # Carga los datos actuales para mostrarlos en el formulario
+        formulario = LibroForm(instance=libro)
+
+    contexto = {
+        'formulario': formulario,
+        'titulo_pagina': 'Editar libro',
+        'libro': libro,
+    }
+
+    return render(request, 'catalogo/formulario_libro.html', contexto)
+
+
+# Permite dar de baja o reactivar un libro sin eliminarlo de MySQL
+@login_required
+def cambiar_estado_libro(request, libro_id):
+
+    # Solo los bibliotecarios activos pueden modificar el catálogo
+    if request.user.tipo_usuario != 'BIBLIOTECARIO' or request.user.bloqueado:
+        raise PermissionDenied
+
+    # Busca el libro que se desea modificar
+    libro = get_object_or_404(Libro, id=libro_id)
+
+    # El estado solamente puede cambiarse desde un formulario POST
+    if request.method != 'POST':
+        return redirect('gestionar_libros')
+
+    # Cambia el estado actual del libro
+    if libro.activo:
+        libro.activo = 0
+        mensaje = 'El libro fue dado de baja correctamente.'
+    else:
+        libro.activo = 1
+        mensaje = 'El libro fue reactivado correctamente.'
+
+    # Guarda únicamente el campo que cambió
+    libro.save(update_fields=['activo'])
+
+    messages.success(request, mensaje)
+
+    return redirect('gestionar_libros')
+
