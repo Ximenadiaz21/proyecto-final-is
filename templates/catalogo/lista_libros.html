@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -21,15 +22,15 @@
         body {
             margin: 0;
             min-height: 100vh;
-            background-color: var(--fondo);
-            font-family: "Segoe UI", Arial, sans-serif;
+            background: var(--fondo);
             color: #273747;
+            font-family: "Segoe UI", Arial, sans-serif;
         }
 
-        /* Da formato a la barra superior */
+        /* Barra de navegación */
         .navbar-biblioteca {
-            background-color: var(--azul);
-            padding: 13px 0;
+            background: var(--azul);
+            padding: 14px 0;
         }
 
         .marca {
@@ -63,7 +64,7 @@
             border: 1px solid #718292;
             border-radius: 7px;
             color: white;
-            padding: 7px 13px;
+            padding: 8px 14px;
             font-size: 12px;
         }
 
@@ -72,9 +73,9 @@
             color: var(--azul);
         }
 
-        /* Organiza el contenido */
+        /* Contenido principal */
         .contenido {
-            max-width: 1130px;
+            max-width: 1200px;
             margin: 35px auto;
             padding: 0 24px;
         }
@@ -90,8 +91,8 @@
 
         h1 {
             font-family: Georgia, "Times New Roman", serif;
-            font-size: 35px;
             color: var(--azul);
+            font-size: 35px;
             margin-bottom: 8px;
         }
 
@@ -107,13 +108,13 @@
             margin: 17px 0 25px;
         }
 
-        /* Da formato al buscador */
+        /* Formulario para buscar libros */
         .buscador {
             background: white;
             border: 1px solid #e4e8ed;
             border-radius: 11px;
             padding: 22px;
-            margin-bottom: 27px;
+            margin-bottom: 28px;
         }
 
         .form-label {
@@ -133,13 +134,13 @@
         .form-control:focus,
         .form-select:focus {
             border-color: #284b68;
-            box-shadow: 0 0 0 3px rgba(40,75,104,0.1);
+            box-shadow: 0 0 0 3px rgba(40, 75, 104, 0.1);
         }
 
         .btn-buscar {
-            height: 46px;
             width: 100%;
-            border: 0;
+            height: 46px;
+            border: none;
             border-radius: 7px;
             background: var(--azul);
             color: white;
@@ -153,87 +154,182 @@
 
         .limpiar {
             color: var(--gris);
-            font-size: 12px;
             text-decoration: none;
+            font-size: 12px;
         }
 
         .limpiar:hover {
             color: var(--azul);
         }
 
-        /* Da formato a los resultados */
+        /* Encabezado de los resultados */
+        .resultados-encabezado {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
         .titulo-resultados {
             color: var(--azul);
             font-family: Georgia, serif;
-            font-size: 23px;
-            margin-bottom: 18px;
+            font-size: 25px;
+            margin: 0;
         }
 
+        .total-resultados {
+            color: var(--gris);
+            font-size: 12px;
+        }
+
+        /* Tarjetas de los libros */
         .libro-card {
             height: 100%;
             background: white;
             border: 1px solid #e4e8ed;
             border-radius: 11px;
-            padding: 20px;
+            padding: 19px;
+            display: flex;
+            flex-direction: column;
             transition: 0.2s;
         }
 
         .libro-card:hover {
-            border-color: #c7d1da;
-            box-shadow: 0 5px 18px rgba(20,43,67,0.06);
+            border-color: #c5d0db;
+            box-shadow: 0 6px 20px rgba(20, 43, 67, 0.08);
+            transform: translateY(-2px);
         }
 
-        .libro-icono {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 52px;
-            height: 52px;
-            margin-bottom: 15px;
+        /* Muestra la portada o un icono cuando no existe */
+        .libro-portada {
+            height: 215px;
             background: #f7f3ec;
-            color: #a47e49;
             border-radius: 9px;
-            font-size: 25px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+
+        .libro-portada img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .libro-portada i {
+            font-size: 55px;
+            color: var(--dorado);
+        }
+
+        .libro-categoria {
+            color: #a47e49;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
         }
 
         .libro-titulo {
             color: var(--azul);
             font-size: 17px;
             font-weight: 600;
-            margin-bottom: 12px;
+            line-height: 1.4;
+            margin-bottom: 13px;
+        }
+
+        .libro-info {
+            flex: 1;
         }
 
         .libro-dato {
-            font-size: 12px;
             color: var(--gris);
+            font-size: 12px;
             line-height: 1.7;
-            margin-bottom: 5px;
+            margin-bottom: 6px;
         }
 
         .libro-dato strong {
             color: #34495b;
         }
 
+        /* Indica cuántos ejemplares se pueden prestar */
         .disponible {
+            display: inline-block;
             color: #276749;
             background: #e8f5ec;
-            display: inline-block;
-            padding: 6px 10px;
             border-radius: 6px;
+            padding: 7px 10px;
             font-size: 12px;
             font-weight: 600;
         }
 
         .agotado {
+            display: inline-block;
             color: #975a16;
             background: #fff4df;
-            display: inline-block;
-            padding: 6px 10px;
             border-radius: 6px;
+            padding: 7px 10px;
             font-size: 12px;
             font-weight: 600;
         }
 
+        /* Botones de las tarjetas */
+        .btn-detalle {
+            display: block;
+            width: 100%;
+            background: white;
+            border: 1px solid var(--azul);
+            color: var(--azul);
+            border-radius: 7px;
+            padding: 10px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .btn-detalle:hover {
+            background: var(--azul);
+            color: white;
+        }
+
+        .btn-prestamo {
+            display: block;
+            width: 100%;
+            background: var(--dorado);
+            border: none;
+            color: white;
+            border-radius: 7px;
+            padding: 11px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .btn-prestamo:hover {
+            background: #b18e59;
+            color: white;
+        }
+
+        .btn-prestamo:disabled {
+            background: #dce1e6;
+            color: #7c8792;
+        }
+
+        .acciones-libro {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+        }
+
+        /* Mensaje cuando no existen coincidencias */
         .sin-resultados {
             background: white;
             border: 1px solid #e4e8ed;
@@ -244,18 +340,32 @@
         }
 
         .sin-resultados i {
-            font-size: 35px;
             color: var(--dorado);
+            font-size: 35px;
+        }
+
+        /* Navegación entre páginas */
+        .paginacion .page-link {
+            color: var(--azul);
+            border-color: #e4e8ed;
+            font-size: 13px;
+            padding: 9px 13px;
+        }
+
+        .paginacion .active .page-link {
+            background: var(--azul);
+            border-color: var(--azul);
+            color: white;
         }
 
         .pie-pagina {
-            padding: 20px;
-            text-align: center;
+            padding: 25px;
             color: #98a2ad;
+            text-align: center;
             font-size: 11px;
         }
 
-        /* Ajusta la página en celular */
+        /* Adapta el catálogo a pantallas pequeñas */
         @media (max-width: 700px) {
             .contenido {
                 margin: 25px auto;
@@ -275,7 +385,16 @@
             }
 
             .libro-card {
-                padding: 18px;
+                padding: 17px;
+            }
+
+            .resultados-encabezado {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .libro-portada {
+                height: 200px;
             }
         }
     </style>
@@ -283,7 +402,7 @@
 
 <body>
 
-    <!-- Muestra la barra de navegación -->
+    <!-- Barra principal del sistema -->
     <nav class="navbar-biblioteca">
         <div class="container d-flex justify-content-between align-items-center">
 
@@ -293,12 +412,12 @@
             </a>
 
             <div class="d-flex align-items-center gap-3">
-                <!-- Regresa al panel del usuario -->
+
                 <a href="{% url 'panel' %}" class="enlace-menu">
                     Mi panel
                 </a>
 
-                <!-- Cierra la sesión -->
+                <!-- Permite cerrar la sesión -->
                 <form method="post" action="{% url 'logout' %}" class="m-0">
                     {% csrf_token %}
 
@@ -306,23 +425,28 @@
                         Cerrar sesión
                     </button>
                 </form>
+
             </div>
         </div>
     </nav>
 
     <main class="contenido">
 
-        <!-- Muestra los mensajes del sistema -->
+        <!-- Muestra los mensajes enviados por Django -->
         {% if messages %}
             {% for mensaje in messages %}
                 <div class="alert alert-{% if mensaje.tags == 'error' %}danger{% else %}{{ mensaje.tags }}{% endif %} alert-dismissible fade show" role="alert">
                     {{ mensaje }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+
+                    <button type="button" class="btn-close"
+                            data-bs-dismiss="alert"
+                            aria-label="Cerrar">
+                    </button>
                 </div>
             {% endfor %}
         {% endif %}
 
-        <!-- Muestra el título del catálogo -->
+        <!-- Presenta el catálogo -->
         <section>
             <div class="etiqueta">
                 Colección bibliográfica
@@ -331,14 +455,14 @@
             <h1>Catálogo de libros</h1>
 
             <p class="descripcion">
-                Busca libros y consulta los ejemplares disponibles
-                en nuestra biblioteca.
+                Explora nuestra colección, encuentra libros de distintas áreas
+                y consulta los ejemplares disponibles.
             </p>
 
             <div class="linea-dorada"></div>
         </section>
 
-        <!-- Permite buscar y filtrar libros -->
+        <!-- Permite buscar por título, autor, ISBN, editorial o categoría -->
         <section class="buscador">
             <form method="get" action="{% url 'lista_libros' %}">
 
@@ -369,11 +493,13 @@
                             name="categoria"
                             class="form-select"
                         >
-                            <option value="">Todas</option>
+                            <option value="">Todas las categorías</option>
 
                             {% for categoria in categorias %}
-                                <option value="{{ categoria.id }}"
-                                    {% if categoria_seleccionada == categoria.id|stringformat:"s" %}selected{% endif %}>
+                                <option
+                                    value="{{ categoria.id }}"
+                                    {% if categoria_seleccionada == categoria.id|stringformat:"s" %}selected{% endif %}
+                                >
                                     {{ categoria.nombre }}
                                 </option>
                             {% endfor %}
@@ -391,6 +517,7 @@
 
                 <div class="mt-3">
                     <a href="{% url 'lista_libros' %}" class="limpiar">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>
                         Limpiar filtros
                     </a>
                 </div>
@@ -398,85 +525,148 @@
             </form>
         </section>
 
-        <!-- Muestra los libros encontrados -->
+        <!-- Muestra los resultados encontrados -->
         <section>
-            <h2 class="titulo-resultados">
-                Libros disponibles en el catálogo
-            </h2>
+
+            <div class="resultados-encabezado">
+                <h2 class="titulo-resultados">
+                    Nuestros libros
+                </h2>
+
+                <span class="total-resultados">
+                    {{ total_libros|default:0 }} libro(s) encontrado(s)
+                </span>
+            </div>
 
             <div class="row g-3">
 
                 {% for libro in libros %}
 
                     <div class="col-md-6 col-lg-4">
+
                         <article class="libro-card">
 
-                            <div class="libro-icono">
-                                <i class="bi bi-book"></i>
+                            <!-- Muestra la portada guardada en MySQL -->
+                            <div class="libro-portada">
+
+                                {% if libro.portada %}
+                                    <img
+                                        src="{{ libro.portada }}"
+                                        alt="Portada de {{ libro.titulo }}"
+                                        loading="lazy"
+                                        onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+                                    >
+
+                                    <i class="bi bi-book"
+                                       style="display: none;"></i>
+                                {% else %}
+                                    <i class="bi bi-book"></i>
+                                {% endif %}
+
                             </div>
 
-                            <!-- Muestra el título del libro -->
-                            <h3 class="libro-titulo">
-                                {{ libro.titulo }}
-                            </h3>
+                            <div class="libro-info">
 
-                            <!-- Muestra la información del libro -->
-                            <p class="libro-dato">
-                                <strong>ISBN:</strong> {{ libro.isbn }}
-                            </p>
+                                <!-- Categoría del libro -->
+                                <div class="libro-categoria">
+                                    {{ libro.categoria.nombre }}
+                                </div>
 
-                            <p class="libro-dato">
-                                <strong>Editorial:</strong>
-                                {{ libro.editorial.nombre }}
-                            </p>
+                                <!-- Título del libro -->
+                                <h3 class="libro-titulo">
+                                    {{ libro.titulo }}
+                                </h3>
 
-                            <p class="libro-dato">
-                                <strong>Categoría:</strong>
-                                {{ libro.categoria.nombre }}
-                            </p>
-
-                            {% if libro.anio_publicacion %}
+                                <!-- Autores relacionados con el libro -->
                                 <p class="libro-dato">
-                                    <strong>Año:</strong>
-                                    {{ libro.anio_publicacion }}
+                                    <strong>Autor:</strong>
+
+                                    {% for relacion in libro.libroautor_set.all %}
+                                        {{ relacion.autor.nombre }} {{ relacion.autor.apellidos }}{% if not forloop.last %}, {% endif %}
+                                    {% empty %}
+                                        No registrado
+                                    {% endfor %}
                                 </p>
-                            {% endif %}
+
+                                <!-- Editorial -->
+                                <p class="libro-dato">
+                                    <strong>Editorial:</strong>
+                                    {{ libro.editorial.nombre }}
+                                </p>
+
+                                <!-- ISBN -->
+                                <p class="libro-dato">
+                                    <strong>ISBN:</strong>
+                                    {{ libro.isbn }}
+                                </p>
+
+                                <!-- Año de publicación -->
+                                {% if libro.anio_publicacion %}
+                                    <p class="libro-dato">
+                                        <strong>Año:</strong>
+                                        {{ libro.anio_publicacion }}
+                                    </p>
+                                {% endif %}
+
+                            </div>
 
                             <hr>
 
-                            <!-- Muestra la cantidad de ejemplares disponibles -->
-                            {% if libro.disponibles > 0 %}
-                                <span class="disponible">
-                                    <i class="bi bi-check-circle me-1"></i>
-                                    {{ libro.disponibles }} disponible(s)
-                                </span>
-                            {% else %}
-                                <span class="agotado">
-                                    <i class="bi bi-clock me-1"></i>
-                                    Sin ejemplares disponibles
-                                </span>
-                            {% endif %}
-
-                            <!-- Botón para solicitar préstamo -->
-                            <div class="mt-3">
+                            <!-- Muestra la disponibilidad real de ejemplares -->
+                            <div>
                                 {% if libro.disponibles > 0 %}
-                                    <a href="{% url 'solicitar_prestamo' libro.id %}" class="btn w-100" style="background-color: var(--dorado); color: white; font-size: 13px; font-weight: 600; border-radius: 7px; padding: 10px;">
-                                        <i class="bi bi-journal-plus me-1"></i> Solicitar Préstamo
-                                    </a>
+                                    <span class="disponible">
+                                        <i class="bi bi-check-circle me-1"></i>
+                                        {{ libro.disponibles }} disponible(s)
+                                    </span>
                                 {% else %}
-                                    <button class="btn w-100 btn-secondary" style="font-size: 13px; border-radius: 7px; padding: 10px;" disabled>
-                                        <i class="bi bi-x-circle me-1"></i> No disponible
-                                    </button>
+                                    <span class="agotado">
+                                        <i class="bi bi-clock me-1"></i>
+                                        Sin ejemplares disponibles
+                                    </span>
                                 {% endif %}
                             </div>
+
+                            <!-- Acciones disponibles para el usuario -->
+                            <div class="acciones-libro">
+
+                                <!-- Abre la información completa del libro -->
+                                <a href="{% url 'detalle_libro' libro.id %}"
+                                   class="btn-detalle">
+                                    <i class="bi bi-eye me-1"></i>
+                                    Ver detalles
+                                </a>
+
+                                <!-- Solo los lectores pueden solicitar préstamos -->
+                                {% if request.user.tipo_usuario == 'ESTUDIANTE' or request.user.tipo_usuario == 'PROFESOR' %}
+
+                                    {% if libro.disponibles > 0 %}
+                                        <a href="{% url 'solicitar_prestamo' libro.id %}"
+                                           class="btn-prestamo">
+                                            <i class="bi bi-journal-plus me-1"></i>
+                                            Solicitar préstamo
+                                        </a>
+                                    {% else %}
+                                        <button type="button"
+                                                class="btn-prestamo"
+                                                disabled>
+                                            No disponible
+                                        </button>
+                                    {% endif %}
+
+                                {% endif %}
+
+                            </div>
+
                         </article>
                     </div>
 
                 {% empty %}
 
-                    <!-- Avisa cuando la búsqueda no tiene resultados -->
+                    <!-- Aparece cuando la búsqueda no tiene resultados -->
                     <div class="col-12">
                         <div class="sin-resultados">
+
                             <i class="bi bi-book"></i>
 
                             <h4 class="mt-3">
@@ -484,24 +674,72 @@
                             </h4>
 
                             <p>
-                                Intenta buscar otro título, autor
-                                o categoría.
+                                Intenta buscar otro título, autor,
+                                ISBN o categoría.
                             </p>
+
+                            <a href="{% url 'lista_libros' %}"
+                               class="btn-detalle d-inline-block"
+                               style="max-width: 190px;">
+                                Ver todo el catálogo
+                            </a>
+
                         </div>
                     </div>
 
                 {% endfor %}
 
             </div>
+
+            <!-- Divide los libros en páginas de 12 resultados -->
+            {% if pagina.has_other_pages %}
+
+                <nav class="mt-4" aria-label="Páginas del catálogo">
+
+                    <ul class="pagination paginacion justify-content-center flex-wrap">
+
+                        {% if pagina.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link"
+                                   href="?q={{ busqueda|urlencode }}&categoria={{ categoria_seleccionada }}&page={{ pagina.previous_page_number }}">
+                                    Anterior
+                                </a>
+                            </li>
+                        {% endif %}
+
+                        {% for numero in pagina.paginator.page_range %}
+                            <li class="page-item {% if pagina.number == numero %}active{% endif %}">
+                                <a class="page-link"
+                                   href="?q={{ busqueda|urlencode }}&categoria={{ categoria_seleccionada }}&page={{ numero }}">
+                                    {{ numero }}
+                                </a>
+                            </li>
+                        {% endfor %}
+
+                        {% if pagina.has_next %}
+                            <li class="page-item">
+                                <a class="page-link"
+                                   href="?q={{ busqueda|urlencode }}&categoria={{ categoria_seleccionada }}&page={{ pagina.next_page_number }}">
+                                    Siguiente
+                                </a>
+                            </li>
+                        {% endif %}
+
+                    </ul>
+                </nav>
+
+            {% endif %}
+
         </section>
 
     </main>
 
-    <!-- Muestra el pie de página -->
+    <!-- Pie de página -->
     <footer class="pie-pagina">
         © 2026 Biblioteca Escolar · Sistema de Gestión
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 </html>
