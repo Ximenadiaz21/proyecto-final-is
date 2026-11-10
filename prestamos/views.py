@@ -1,13 +1,16 @@
 from datetime import timedelta
+from decimal import Decimal
 
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.db import transaction
+from django.db.models import Q, Sum
 from django.utils import timezone
 
 from catalogo.models import Libro, Ejemplar
+from cuentas.models import Notificacion
 from .models import PoliticaPrestamo, Prestamo
 from multas.models import Multa
 
@@ -28,11 +31,25 @@ def solicitar_prestamo(request, libro_id):
         messages.error(request, "Tu cuenta está bloqueada. No puedes solicitar préstamos.")
         return redirect('lista_libros')
 
-    tiene_multas = Multa.objects.filter(usuario=usuario, estado='PENDIENTE').exists()
-    prestamos_vencidos = Prestamo.objects.filter(usuario=usuario, estado='VENCIDO').exists()
+    hoy = timezone.localdate()
 
-    if tiene_multas or prestamos_vencidos:
-        messages.error(request, "No puedes solicitar libros porque tienes multas pendientes o préstamos vencidos (RN-08).")
+    multas_pendientes = Multa.objects.filter(usuario=usuario, estado='PENDIENTE')
+    prestamos_vencidos = Prestamo.objects.filter(usuario=usuario).filter(
+        Q(estado='VENCIDO') | Q(estado='ACTIVO', fecha_vencimiento__lt=hoy)
+    ).exists()
+
+    if multas_pendientes.exists():
+        # Suma lo que falta por pagar de todas las multas pendientes
+        adeudo = Decimal('0')
+        for m in multas_pendientes:
+            pagado = m.pago_set.aggregate(t=Sum('monto'))['t'] or Decimal('0')
+            adeudo += m.monto - pagado
+
+        messages.error(request, f"No puedes solicitar libros porque tienes multas pendientes por ${adeudo:.2f} (RN-08).")
+        return redirect('lista_libros')
+
+    if prestamos_vencidos:
+        messages.error(request, "No puedes solicitar libros porque tienes préstamos vencidos. Devuélvelos primero (RN-08).")
         return redirect('lista_libros')
 
     # 3. Obtiene la política según el tipo de usuario
@@ -210,13 +227,16 @@ def entregar_prestamo(request, prestamo_id):
     return redirect('gestion_prestamos')
 
 
-# Recibe el libro de vuelta: ACTIVO/VENCIDO -> DEVUELTO
+# Recibe el libro de vuelta: ACTIVO/VENCIDO -> DEVUELTO (genera multa si hay retraso)
 @login_required
 @require_POST
 def recibir_devolucion(request, prestamo_id):
     if not es_bibliotecario(request.user):
         messages.error(request, "No tienes permiso para recibir devoluciones.")
         return redirect('panel')
+
+    multa = None
+    dias_retraso = 0
 
     with transaction.atomic():
         prestamo = get_object_or_404(
@@ -230,7 +250,39 @@ def recibir_devolucion(request, prestamo_id):
 
         ahora = timezone.now()
         hoy = timezone.localdate()
-        con_retraso = prestamo.fecha_vencimiento and prestamo.fecha_vencimiento < hoy
+
+        # Calcula los días de retraso (RN-07)
+        if prestamo.fecha_vencimiento and prestamo.fecha_vencimiento < hoy:
+            dias_retraso = (hoy - prestamo.fecha_vencimiento).days
+
+        # Genera la multa por retraso dentro de la misma transacción
+        if dias_retraso > 0:
+            try:
+                politica = PoliticaPrestamo.objects.get(tipo_usuario=prestamo.usuario.tipo_usuario)
+            except PoliticaPrestamo.DoesNotExist:
+                messages.error(request, "No hay política de préstamo para calcular la multa. No se registró la devolución.")
+                return redirect('gestion_prestamos')
+
+            monto = min(Decimal(dias_retraso) * politica.multa_por_dia, politica.multa_maxima)
+
+            if monto > 0:
+                multa = Multa.objects.create(
+                    prestamo=prestamo,
+                    usuario=prestamo.usuario,
+                    motivo='RETRASO',
+                    dias_retraso=dias_retraso,
+                    monto=monto,
+                    estado='PENDIENTE',
+                    fecha_generacion=ahora
+                )
+
+                Notificacion.objects.create(
+                    usuario=prestamo.usuario,
+                    tipo='MULTA',
+                    mensaje=f"Se generó una multa de ${monto:.2f} por {dias_retraso} día(s) de retraso en la devolución de \"{prestamo.ejemplar.libro.titulo}\".",
+                    leida=0,
+                    fecha=ahora
+                )
 
         prestamo.estado = 'DEVUELTO'
         prestamo.fecha_devolucion = ahora
@@ -240,12 +292,11 @@ def recibir_devolucion(request, prestamo_id):
         prestamo.ejemplar.estado = 'DISPONIBLE'
         prestamo.ejemplar.save()
 
-    if con_retraso:
-        dias = (hoy - prestamo.fecha_vencimiento).days
+    if multa:
         messages.warning(
             request,
-            f"Devolución registrada con {dias} día(s) de retraso. "
-            f"Falta generar la multa (pendiente de implementar)."
+            f"Devolución registrada con {dias_retraso} día(s) de retraso. "
+            f"Se generó una multa de ${multa.monto:.2f} para {prestamo.usuario.username}."
         )
     else:
         messages.success(request, "Devolución registrada correctamente.")

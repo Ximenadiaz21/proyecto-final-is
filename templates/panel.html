@@ -482,7 +482,10 @@
                             pagos o condonaciones.
                         </p>
 
-                        <span class="estado">En desarrollo</span>
+                        <a href="{% url 'gestion_multas' %}" class="enlace-admin">
+                            Gestionar multas
+                            <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
                     </div>
                 </div>
 
@@ -595,7 +598,25 @@
                         </a>
                     </div>
                 </div>
+                                <div class="col-md-6">
+                    <div class="tarjeta">
+                        <div class="tarjeta-icono">
+                            <i class="bi bi-receipt"></i>
+                        </div>
 
+                        <h3>Mis multas</h3>
+
+                        <p>
+                            Consulta tus multas pendientes
+                            y el historial de pagos.
+                        </p>
+
+                        <a href="{% url 'mis_multas' %}" class="enlace-admin">
+                            Ver mis multas
+                            <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
             </div>
 
         <!-- Muestra el panel del profesor -->
@@ -666,7 +687,25 @@
                         <span class="estado">En desarrollo</span>
                     </div>
                 </div>
+                                <div class="col-md-6">
+                    <div class="tarjeta">
+                        <div class="tarjeta-icono">
+                            <i class="bi bi-receipt"></i>
+                        </div>
 
+                        <h3>Mis multas</h3>
+
+                        <p>
+                            Consulta tus multas pendientes
+                            y el historial de pagos.
+                        </p>
+
+                        <a href="{% url 'mis_multas' %}" class="enlace-admin">
+                            Ver mis multas
+                            <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
             </div>
 
         {% endif %}

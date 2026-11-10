@@ -35,4 +35,6 @@ urlpatterns = [
 
     # Conecta los préstamos
     path('prestamos/', include('prestamos.urls')),
+    # Conecta las multas y pagos
+    path('multas/', include('multas.urls')),
 ]
