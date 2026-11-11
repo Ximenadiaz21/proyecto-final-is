@@ -39,4 +39,6 @@ urlpatterns = [
     path('multas/', include('multas.urls')),
     # Conecta la gestión de usuarios
     path('usuarios/', include('cuentas.urls')),
+    # Conecta la gestión de ejemplares
+    path('ejemplares/', include('catalogo.urls_ejemplares')),
 ]
