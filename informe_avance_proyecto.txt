@@ -1,0 +1,409 @@
+================================================================================
+INFORME TÉCNICO DETALLADO DEL PROYECTO: SISTEMA DE GESTIÓN DE BIBLIOTECA ESCOLAR
+================================================================================
+Fecha de actualización: 11 de noviembre de 2026
+Directorio del proyecto: C:\Users\ximen\Universidad\quinto_semestre\proyecto-final-is
+Rama activa de Git: main (último commit: 564070c)
+
+--------------------------------------------------------------------------------
+1. RESUMEN EJECUTIVO Y ARQUITECTURA GENERAL
+--------------------------------------------------------------------------------
+* Framework y Lenguaje:
+  - Django 5.2.18 sobre Python (definido en requirements.txt).
+  - Paquetes adicionales: asgiref 3.12.1, mysqlclient 2.3.0, python-dotenv 1.2.4,
+    sqlparse 0.6.0, tzdata 2026.5.
+
+* Base de Datos (biblioteca/settings.py):
+  - Motor: MySQL (django.db.backends.mysql), base de datos "biblioteca", puerto 3306.
+  - Codificación: utf8mb4.
+  - Seguridad de credenciales: Variables de entorno DB_USER y DB_PASSWORD leídas
+    mediante python-dotenv desde el archivo .env.
+
+* Enfoque de Persistencia (managed = False):
+  - Todos los modelos utilizan "managed = False" para operar directamente sobre un
+    esquema relacional preexistente en MySQL.
+  - De las 14 tablas originalmente inspeccionadas en modelos_generados.py, 13 modelos
+    ya están integrados y distribuidos en 4 aplicaciones modulares de Django:
+      1. cuentas   (Usuarios, perfiles académicos y notificaciones)
+      2. catalogo  (Acervo bibliográfico, autores, editoriales, categorías y ejemplares)
+      3. prestamos (Políticas de préstamo, solicitudes, entregas, devoluciones y reservas)
+      4. multas    (Multas por retraso/daño/pérdida, pagos parciales/totales y condonaciones)
+  - Únicamente la tabla SugerenciaAdquisicion ('sugerencia_adquisicion') permanece
+    definida solo en modelos_generados.py pendiente de integrarse en una app.
+
+* Localización e Interfaz de Usuario:
+  - Idioma y Zona Horaria: LANGUAGE_CODE = 'es-mx', TIME_ZONE = 'America/Mexico_City'.
+  - Frontend: Diseño responsivo con Bootstrap 5.3.3 y Bootstrap Icons 1.11.3.
+  - Identidad visual: Paleta institucional unificada (azul marino #142b43, azul
+    secundario #284b68, dorado #c5a16b, fondo #f5f6f8) y tipografía Georgia/Segoe UI.
+
+
+--------------------------------------------------------------------------------
+2. DESGLOSE DETALLADO POR MÓDULO IMPLEMENTADO
+--------------------------------------------------------------------------------
+
+2.1. MÓDULO DE CUENTAS Y AUTENTICACIÓN (app: cuentas)
+-----------------------------------------------------
+Gestiona el control de acceso, los tres roles del sistema y la información escolar/laboral.
+
+A) Modelos (cuentas/models.py):
+   - Usuario (tabla 'usuario'): Extiende AbstractUser (AUTH_USER_MODEL = 'cuentas.Usuario').
+     Define tres roles en TIPO_CHOICES: ESTUDIANTE, PROFESOR y BIBLIOTECARIO.
+     Campos adicionales: tipo_usuario, telefono, bloqueado, motivo_bloqueo.
+   - Carrera (tabla 'carrera'): clave única y nombre de la carrera.
+   - Departamento (tabla 'departamento'): nombre único del departamento académico.
+   - Estudiante (tabla 'estudiante'): Relación 1 a 1 con Usuario (primary_key=True),
+     matricula única, ForeignKey a Carrera y semestre.
+   - Profesor (tabla 'profesor'): Relación 1 a 1 con Usuario (primary_key=True),
+     num_empleado único y ForeignKey a Departamento.
+   - Notificacion (tabla 'notificacion'): Avisos del sistema asociados a un Usuario
+     (tipo, mensaje, leida, fecha).
+
+B) Autenticación y Vistas (biblioteca/urls.py y cuentas/views.py):
+   - LoginView en /login/ usando templates/login.html (con redirect_authenticated_user=True).
+   - LogoutView en /logout/ que redirige al login (ejecutado vía formulario POST con CSRF).
+   - Redirección raíz (/) hacia /login/, y LOGIN_REDIRECT_URL hacia 'panel' (/panel/).
+   - Vista panel_usuario (cuentas/views.py): Protegida con @login_required. Renderiza
+     templates/panel.html adaptando el título y las tarjetas de servicios según el rol:
+     * BIBLIOTECARIO (6 tarjetas):
+       1. Catálogo de libros (enlace activo a /catalogo/)
+       2. Usuarios (etiqueta "En desarrollo")
+       3. Préstamos (enlace activo a /prestamos/gestion/)
+       4. Multas y pagos (enlace activo a /multas/)
+       5. Reservas (etiqueta "En desarrollo")
+       6. Reportes (etiqueta "En desarrollo")
+       + Bloque adicional de "Administración del sistema" con enlace directo a
+         Django Admin (/admin/) si el usuario tiene permisos is_staff.
+     * ESTUDIANTE (3 tarjetas):
+       1. Buscar libros (enlace activo a /catalogo/)
+       2. Mis préstamos (enlace activo a /prestamos/mis-prestamos/)
+       3. Mis multas (enlace activo a /multas/mis-multas/)
+     * PROFESOR (4 tarjetas):
+       1. Buscar libros (enlace activo a /catalogo/)
+       2. Mis préstamos (enlace activo a /prestamos/mis-prestamos/)
+       3. Sugerir un libro (etiqueta "En desarrollo")
+       4. Mis multas (enlace activo a /multas/mis-multas/)
+
+C) Comando de Poblado de Datos (cuentas/management/commands/usuarios.py):
+   - Comando: python manage.py usuarios
+   - Ejecución atómica (@transaction.atomic) e idempotente (get_or_create):
+     * Crea 5 carreras (SIS, IND, MEC, DER, ADM).
+     * Crea 5 departamentos (Ingeniería, Matemáticas, Ciencias Básicas, Humanidades,
+       Administración).
+     * Crea 20 estudiantes (alumno01 a alumno20) con matrículas DEMO00001..DEMO00020.
+     * Crea 5 profesores (profesor01 a profesor05) con empleados PROF0001..PROF0005.
+     * Crea 1 bibliotecario adicional (bibliotecario_demo).
+     * Contraseña común de prueba: passbiblio.
+
+D) Django Admin (cuentas/admin.py):
+   - Configuración personalizada para UsuarioAdmin, EstudianteAdmin, ProfesorAdmin,
+     CarreraAdmin, DepartamentoAdmin y NotificacionAdmin con columnas calculadas
+     (nombre completo, username, carrera/departamento), filtros por rol/estado,
+     búsqueda por matrícula/nombre/usuario y optimización list_select_related.
+
+
+2.2. MÓDULO DE CATÁLOGO BIBLIOGRÁFICO Y GESTIÓN (app: catalogo)
+---------------------------------------------------------------
+Permite la consulta del acervo por los lectores y la administración por el bibliotecario.
+
+A) Modelos (catalogo/models.py):
+   - Autor (tabla 'autor'): nombre, apellidos, nacionalidad.
+   - Categoria (tabla 'categoria'): nombre único, descripcion.
+   - Editorial (tabla 'editorial'): nombre único, pais.
+   - Libro (tabla 'libro'): isbn único (13 caracteres), titulo, subtitulo, editorial,
+     categoria, anio_publicacion, edicion, idioma, num_paginas, descripcion, portada (URL),
+     costo_reposicion y activo (1 = activo, 0 = baja lógica).
+   - LibroAutor (tabla 'libro_autor'): Relación muchos a muchos entre Libro y Autor con
+     campo 'orden' y restricción unique_together = (('libro', 'autor'),).
+   - Ejemplar (tabla 'ejemplar'): Copia física de un libro con codigo_inventario único,
+     ubicacion, estado ('DISPONIBLE', 'RESERVADO', 'PRESTADO', etc.), fecha_adquisicion
+     y observaciones.
+
+B) Vistas de Consulta para Lectores (catalogo/views.py):
+   - Función auxiliar obtener_libros(): Filtra libros activos (activo=1), aplica
+     select_related('categoria', 'editorial'), prefetch_related de autores ordenados
+     por 'orden', y calcula con annotate(disponibles=Count(...)) los ejemplares en
+     estado 'DISPONIBLE' en una sola consulta SQL.
+   - Vista lista_libros (/catalogo/):
+     * Buscador multicriterio (Q objects) por título, ISBN, editorial, categoría,
+       nombre o apellidos del autor.
+     * Filtro por categoría desplegable y enlace para limpiar filtros.
+     * Paginación de 12 libros por página conservando parámetros GET de búsqueda.
+     * Plantilla: templates/catalogo/lista_libros.html (muestra portada con fallback
+       automático a ícono si falla la carga de imagen, disponibilidad en tiempo real
+       y botón "Solicitar préstamo" exclusivo para estudiantes y profesores).
+   - Vista detalle_libro (/catalogo/<int:libro_id>/):
+     * Muestra la ficha bibliográfica completa de la obra (incluyendo subtítulo,
+       edición, idioma, páginas, costo de reposición y descripción) y la tabla de
+       todos sus ejemplares físicos con código de inventario, ubicación en estante
+       y estado actual.
+     * Plantilla: templates/catalogo/detalle_libro.html.
+
+C) Vistas y Formularios de Gestión Bibliotecaria (catalogo/views.py y catalogo/forms.py):
+   - Control de acceso estricto: Verifica que request.user.tipo_usuario == 'BIBLIOTECARIO'
+     y que no esté bloqueado (lanza PermissionDenied en caso contrario).
+   - Vista gestionar_libros (/catalogo/gestion/):
+     * Listado tabular paginado (15 libros por página) de todos los libros (activos e
+       inactivos) con buscador por título/autor/ISBN, conteo de ejemplares disponibles
+       vs. totales, estado (Activo/Inactivo) y acciones rápidas (Ver, Editar, Dar de
+       baja / Reactivar con confirmación).
+     * Plantilla: templates/catalogo/gestionar_libros.html.
+   - Vista nuevo_libro (/catalogo/gestion/nuevo/) y editar_libro (/catalogo/gestion/libros/<id>/editar/):
+     * Utilizan LibroForm (catalogo/forms.py), que incluye selección de autor principal,
+       limpieza de guiones/espacios en ISBN y validación de longitud (10 o 13 dígitos).
+     * Guardan en transacción atómica el registro en Libro y su vínculo en LibroAutor.
+     * Plantilla: templates/catalogo/formulario_libro.html (incluye botones "+" junto
+       a los campos Autor, Editorial y Categoría para registrar nuevos datos auxiliares
+       sin perder el flujo de trabajo).
+   - Vista cambiar_estado_libro (/catalogo/gestion/libros/<id>/estado/):
+     * Permite dar de baja lógica (activo = 0) o reactivar (activo = 1) un libro vía POST
+       usando update_fields=['activo'], sin eliminar registros históricos de MySQL.
+   - Vistas de catálogos auxiliares:
+     * nuevo_autor (/catalogo/gestion/autores/nuevo/) con AutorForm.
+     * nueva_editorial (/catalogo/gestion/editoriales/nueva/) con EditorialForm.
+     * nueva_categoria (/catalogo/gestion/categorias/nueva/) con CategoriaForm.
+     * Todos validan que no se registren duplicados (comparación case-insensitive __iexact)
+       y redirigen de vuelta a nuevo_libro tras guardar.
+     * Plantillas: templates/catalogo/formulario_autor.html y formulario_dato.html.
+
+D) Comando de Carga desde API Externa (catalogo/management/commands/libros.py):
+   - Comando: python manage.py libros
+   - Incluye un listado curado de 50 libros reales distribuidos en 10 categorías
+     (Programación, Ciencia de datos e IA, Matemáticas, Física, Literatura clásica,
+     Literatura latinoamericana, Fantasía y ciencia ficción, Psicología, Historia,
+     Negocios y administración).
+   - Consulta la API pública de Open Library (https://openlibrary.org/search.json),
+     normaliza texto sin acentos, valida similitud de título (>= 0.85 con SequenceMatcher),
+     comprueba el dígito de control de ISBN-13 (función isbn_valido), obtiene la URL
+     de la portada y crea automáticamente 2 ejemplares físicos disponibles por cada libro
+     (códigos DEMO-00001-1, DEMO-00001-2, etc., asignados a Estantes 1..10).
+
+E) Django Admin (catalogo/admin.py):
+   - Admin registrado para Autor, Categoria, Editorial, Libro, LibroAutor y Ejemplar.
+   - EjemplarAdmin permite editar el 'estado' directamente desde la lista (list_editable).
+
+
+2.3. MÓDULO DE PRÉSTAMOS Y CIRCULACIÓN (app: prestamos)
+-------------------------------------------------------
+Gestiona las políticas de préstamo, solicitudes en línea, entregas y devoluciones en mostrador.
+
+A) Modelos (prestamos/models.py):
+   - PoliticaPrestamo (tabla 'politica_prestamo'): Define por cada tipo_usuario los
+     parámetros dias_prestamo, max_libros, max_renovaciones, multa_por_dia,
+     multa_maxima y horas_para_recoger.
+   - Prestamo (tabla 'prestamo'): Relaciona usuario y ejemplar; controla el estado
+     ('SOLICITADO', 'ACTIVO', 'VENCIDO', 'DEVUELTO'), fecha_solicitud,
+     fecha_limite_recoger, fecha_prestamo, fecha_vencimiento, fecha_devolucion,
+     num_renovaciones, entregado_por, recibido_por y observaciones.
+   - Reserva (tabla 'reserva'): Estructura para reservas en cola FIFO cuando no hay
+     ejemplares disponibles.
+
+B) Vistas y Reglas de Negocio (prestamos/views.py):
+   - Vista solicitar_prestamo (/prestamos/solicitar/<int:libro_id>/) [CU-06]:
+     1. Verifica que el usuario sea ESTUDIANTE o PROFESOR (los bibliotecarios no
+        pueden solicitar préstamos).
+     2. Verifica que la cuenta no esté bloqueada.
+     3. RN-08: Bloquea la solicitud si el usuario tiene multas en estado 'PENDIENTE'
+        (calculando e informando el adeudo exacto restante descontando abonos parciales)
+        o si tiene préstamos vencidos ('VENCIDO' o 'ACTIVO' con fecha_vencimiento < hoy).
+     4. Obtiene la PoliticaPrestamo correspondiente al rol del usuario.
+     5. RN-02: Valida que la cantidad de préstamos en curso ('SOLICITADO', 'ACTIVO',
+        'VENCIDO') sea menor a politica.max_libros.
+     6. RN-11: Impide solicitar dos veces el mismo título si ya tiene uno en curso.
+     7. RNF-03 y RN-06: Dentro de transaction.atomic(), bloquea la fila del ejemplar
+        con select_for_update(), cambia su estado a 'RESERVADO' y crea el préstamo
+        en estado 'SOLICITADO' calculando fecha_limite_recoger según horas_para_recoger.
+   - Vista mis_prestamos (/prestamos/mis-prestamos/):
+     * Exclusiva para estudiantes y profesores. Separa los préstamos en dos listas:
+       "En curso" (SOLICITADO, ACTIVO, VENCIDO) e "Historial" (DEVUELTO, etc.).
+     * Plantilla: templates/prestamos/mis_prestamos.html.
+   - Vista gestion_prestamos (/prestamos/gestion/):
+     * Exclusiva para bibliotecarios. Muestra dos secciones operativas: solicitudes
+       "Por entregar" (SOLICITADO) y libros "Prestados" (ACTIVO / VENCIDO), marcando
+       visualmente con insignia "VENCIDO" cualquier préstamo cuya fecha_vencimiento < hoy.
+     * Plantilla: templates/prestamos/gestion_prestamos.html.
+   - Vista entregar_prestamo (/prestamos/entregar/<int:prestamo_id>/):
+     * Petición POST (@require_POST) exclusiva para bibliotecarios con select_for_update().
+     * Pasa el préstamo de 'SOLICITADO' a 'ACTIVO', registra fecha_prestamo, calcula
+       fecha_vencimiento = hoy + politica.dias_prestamo, asigna entregado_por = request.user
+       y actualiza el ejemplar físico a estado 'PRESTADO'.
+   - Vista recibir_devolucion (/prestamos/devolver/<int:prestamo_id>/):
+     * Petición POST (@require_POST) exclusiva para bibliotecarios en transacción atómica.
+     * Pasa el préstamo a 'DEVUELTO', registra fecha_devolucion y recibido_por, y
+       devuelve el ejemplar físico a estado 'DISPONIBLE'.
+     * RN-07 (Cálculo automático de multa): Si hoy > fecha_vencimiento, calcula los
+       días de retraso y el monto topado:
+       monto = min(dias_retraso * politica.multa_por_dia, politica.multa_maxima).
+       Crea automáticamente el registro en Multa (estado 'PENDIENTE', motivo 'RETRASO')
+       y genera una Notificacion (tipo 'MULTA') para el usuario dentro de la misma
+       transacción.
+
+C) Django Admin (prestamos/admin.py):
+   - Admin para PoliticaPrestamo, Prestamo y Reserva.
+   - En PrestamoAdmin el campo 'fecha_vencimiento' está en list_editable, lo que facilita
+     simular préstamos vencidos directamente desde el listado para pruebas de multas.
+
+
+2.4. MÓDULO DE MULTAS, PAGOS Y CONDONACIONES (app: multas)
+----------------------------------------------------------
+Administra los adeudos generados por devoluciones tardías, abonos parciales/totales y condonaciones.
+
+A) Modelos (multas/models.py):
+   - Multa (tabla 'multa'): Relacionada con Prestamo y Usuario. Campos: motivo
+     ('RETRASO', 'DANIO', 'PERDIDA'), dias_retraso, monto, estado ('PENDIENTE',
+     'PAGADA', 'CONDONADA'), fecha_generacion, justificacion_condonacion y condonada_por.
+   - Pago (tabla 'pago'): Relacionado con Multa. Permite pagos totales o parciales.
+     Campos: monto, metodo ('EFECTIVO', 'TARJETA', 'TRANSFERENCIA'), folio_recibo único,
+     fecha_pago y registrado_por.
+
+B) Vistas y Reglas de Negocio (multas/views.py):
+   - Funciones auxiliares total_pagado(multa) y con_saldos(multas): Calculan mediante
+     Sum('monto') cuánto se ha abonado a cada multa y su saldo pendiente real.
+   - Vista mis_multas (/multas/mis-multas/) [CU-14]:
+     * Para estudiantes y profesores. Muestra el total adeudado global, las multas
+       pendientes (desglosando monto original, pagado y saldo) y el historial de multas
+       pagadas o condonadas (incluyendo motivo y justificación si fue condonada).
+     * Plantilla: templates/multas/mis_multas.html.
+   - Vista gestion_multas (/multas/):
+     * Para bibliotecarios. Muestra el total pendiente por cobrar en la biblioteca,
+       cada multa pendiente con formularios desplegables (<details>) para registrar
+       pago o condonar, y las últimas 20 multas cerradas.
+     * Plantilla: templates/multas/gestion_multas.html.
+   - Vista registrar_pago (/multas/pagar/<int:multa_id>/) [CU-28]:
+     * Petición POST (@require_POST) exclusiva para bibliotecarios en transacción
+       atómica con select_for_update().
+     * Valida que el método sea EFECTIVO, TARJETA o TRANSFERENCIA y que el monto sea
+       mayor a $0.00 y no exceda el saldo pendiente.
+     * Genera un folio de recibo único con formato: REC-YYYYMMDDHHMMSS-<multa_id>.
+     * Si el monto abonado liquida el saldo restante (monto == saldo), cambia
+       automáticamente el estado de la multa a 'PAGADA'.
+   - Vista condonar_multa (/multas/condonar/<int:multa_id>/) [CU-29, RN-14]:
+     * Petición POST (@require_POST) exclusiva para bibliotecarios en transacción
+       atómica con select_for_update().
+     * Exige justificación obligatoria no vacía (máximo 255 caracteres).
+     * Cambia el estado de la multa a 'CONDONADA', guarda la justificación y registra
+       al bibliotecario en condonada_por.
+
+C) Django Admin (multas/admin.py):
+   - MultaAdmin y PagoAdmin configurados con filtros por estado/motivo/método y búsqueda
+     por folio de recibo, título de libro y usuario.
+
+
+--------------------------------------------------------------------------------
+3. TRAZABILIDAD DE REGLAS DE NEGOCIO Y CASOS DE USO IMPLEMENTADOS
+--------------------------------------------------------------------------------
+* Casos de Uso cubiertos en vistas propias:
+  - Autenticación de usuarios (/login/, /logout/) y panel diferenciado por rol (/panel/).
+  - Consulta pública del catálogo con búsqueda multicriterio y detalle de ejemplares.
+  - Gestión bibliotecaria del catálogo (alta, edición y baja lógica de libros; alta de
+    autores, editoriales y categorías).
+  - CU-06: Solicitar préstamo de ejemplar en línea (/prestamos/solicitar/<libro_id>/).
+  - Gestión de entregas en mostrador y recepción de devoluciones (/prestamos/gestion/).
+  - CU-14: Consultar mis multas e historial de pagos (/multas/mis-multas/).
+  - CU-28: Registrar pago total o parcial de multa con folio (/multas/pagar/<multa_id>/).
+  - CU-29: Condonar multa con justificación (/multas/condonar/<multa_id>/).
+
+* Reglas de Negocio y Requerimientos No Funcionales validados en código:
+  - RN-02: Límite de préstamos simultáneos según politica_prestamo.max_libros.
+  - RN-06: Tiempo límite para recoger ejemplar solicitado (horas_para_recoger).
+  - RN-07: Generación automática de multa al devolver con retraso, topada a multa_maxima.
+  - RN-08: Bloqueo de nuevas solicitudes si el lector tiene multas pendientes o
+           préstamos vencidos.
+  - RN-11: Prohibición de solicitar más de un ejemplar del mismo título simultáneamente.
+  - RN-14: Justificación obligatoria al condonar una multa.
+  - RNF-03: Control de concurrencia mediante transaction.atomic() y select_for_update()
+            al apartar ejemplares, entregar libros, recibir devoluciones y cobrar/condonar.
+
+
+--------------------------------------------------------------------------------
+4. MAPA DE RUTAS (URLS) DEL SISTEMA
+--------------------------------------------------------------------------------
+* /                                           -> Redirección a /login/ (inicio)
+* /admin/                                     -> Panel de Django Admin
+* /login/                                     -> Inicio de sesión (login)
+* /logout/                                    -> Cierre de sesión (logout)
+* /panel/                                     -> Panel principal según rol (panel)
+* /catalogo/                                  -> Catálogo público con filtros (lista_libros)
+* /catalogo/<int:libro_id>/                   -> Detalle de libro y ejemplares (detalle_libro)
+* /catalogo/gestion/                          -> Administración de libros (gestionar_libros)
+* /catalogo/gestion/nuevo/                    -> Registrar nuevo libro (nuevo_libro)
+* /catalogo/gestion/libros/<id>/editar/       -> Editar libro existente (editar_libro)
+* /catalogo/gestion/libros/<id>/estado/       -> Dar de baja / reactivar libro (cambiar_estado_libro)
+* /catalogo/gestion/autores/nuevo/            -> Registrar nuevo autor (nuevo_autor)
+* /catalogo/gestion/editoriales/nueva/        -> Registrar nueva editorial (nueva_editorial)
+* /catalogo/gestion/categorias/nueva/         -> Registrar nueva categoría (nueva_categoria)
+* /prestamos/solicitar/<int:libro_id>/        -> Solicitar préstamo de ejemplar (solicitar_prestamo)
+* /prestamos/mis-prestamos/                   -> Mis préstamos e historial (mis_prestamos)
+* /prestamos/gestion/                         -> Gestión de entregas/devoluciones (gestion_prestamos)
+* /prestamos/entregar/<int:prestamo_id>/      -> Entregar libro solicitado (entregar_prestamo)
+* /prestamos/devolver/<int:prestamo_id>/      -> Recibir devolución y calcular multa (recibir_devolucion)
+* /multas/                                    -> Panel bibliotecario de multas y cobros (gestion_multas)
+* /multas/mis-multas/                         -> Consulta de multas del lector (mis_multas)
+* /multas/pagar/<int:multa_id>/               -> Registrar pago total o parcial (registrar_pago)
+* /multas/condonar/<int:multa_id>/            -> Condonar multa con justificación (condonar_multa)
+
+
+--------------------------------------------------------------------------------
+5. ESTRUCTURA ACTUAL DE PLANTILLAS (templates/)
+--------------------------------------------------------------------------------
+* templates/login.html                        -> Pantalla de inicio de sesión institucional
+* templates/panel.html                        -> Panel principal dinámico por tipo_usuario
+* templates/catalogo/lista_libros.html        -> Catálogo general con buscador y filtros
+* templates/catalogo/detalle_libro.html       -> Ficha técnica del libro y tabla de ejemplares
+* templates/catalogo/gestionar_libros.html    -> Tabla administrativa del catálogo (CRUD)
+* templates/catalogo/formulario_libro.html    -> Formulario de alta/edición de libro
+* templates/catalogo/formulario_autor.html    -> Formulario de alta de autor
+* templates/catalogo/formulario_dato.html     -> Formulario reutilizable para editorial/categoría
+* templates/prestamos/mis_prestamos.html      -> Préstamos en curso e historial del lector
+* templates/prestamos/gestion_prestamos.html  -> Entregas pendientes y devoluciones (bibliotecario)
+* templates/multas/mis_multas.html            -> Estado de cuenta e historial de multas del lector
+* templates/multas/gestion_multas.html        -> Cobro parcial/total y condonación (bibliotecario)
+* templates/lista_libros.html                 -> Plantilla legada (reemplazada por catalogo/lista_libros.html)
+
+
+--------------------------------------------------------------------------------
+6. QUÉ FALTA POR DESARROLLAR / PENDIENTES IDENTIFICADOS
+--------------------------------------------------------------------------------
+
+A) Secciones marcadas como "En desarrollo" en templates/panel.html:
+   1. Gestión de Usuarios (Panel del Bibliotecario):
+      - Actualmente se administra desde /admin/, pero la tarjeta "Usuarios" en
+        panel.html muestra la etiqueta "En desarrollo".
+   2. Reservas en Cola FIFO (Panel del Bibliotecario y Catálogo):
+      - El modelo Reserva ya existe en prestamos/models.py y en el Admin, pero falta
+        la vista para que el lector reserve un libro cuando disponibles == 0 y la
+        asignación automática al devolverse un ejemplar.
+   3. Reportes y Estadísticas (Panel del Bibliotecario):
+      - La tarjeta "Reportes" aparece como "En desarrollo" (estadísticas de préstamos,
+        libros más consultados, multas recaudadas, etc.).
+   4. Sugerencias de Adquisición (Panel del Profesor):
+      - La tarjeta "Sugerir un libro" aparece como "En desarrollo". La tabla
+        SugerenciaAdquisicion ya está mapeada en modelos_generados.py, solo falta
+        integrarla en una app con su formulario y vista para profesores/bibliotecarios.
+
+B) Funcionalidades complementarias y mejoras rápidas:
+   1. Renovación de préstamos:
+      - Los campos num_renovaciones (en Prestamo) y max_renovaciones (en PoliticaPrestamo)
+        ya existen, pero falta el botón/vista para que el lector renueve su préstamo activo.
+   2. Cancelación o vencimiento de solicitudes no recogidas:
+      - Liberar el ejemplar de 'RESERVADO' a 'DISPONIBLE' si el lector cancela su
+        solicitud o si expira fecha_limite_recoger.
+   3. Enlace directo a "Gestión de libros" en el panel del bibliotecario:
+      - En templates/panel.html, la tarjeta "Catálogo de libros" del bibliotecario
+        apunta únicamente a {% url 'lista_libros' %} (/catalogo/); convendría enlazar
+        también a {% url 'gestionar_libros' %} (/catalogo/gestion/) o agregar un botón
+        de administración dentro de lista_libros.html para el bibliotecario.
+   4. Alta de ejemplares físicos desde el panel:
+      - El bibliotecario puede dar de alta libros, autores, editoriales y categorías
+        desde la interfaz propia, pero el alta de copias físicas (Ejemplar) aún se
+        hace desde Django Admin.
+   5. Visualización de Notificaciones:
+      - Al generar una multa por retraso ya se guarda un registro en la tabla
+        Notificacion, pero falta mostrar las notificaciones en el panel del usuario.
+   6. Limpieza menor y pruebas unitarias:
+      - El archivo templates/lista_libros.html (en la raíz de templates/) y la función
+        inicio_requerimientos en cuentas/views.py quedaron sin ruta activa tras las
+        actualizaciones recientes.
+      - Los archivos tests.py de las 4 apps están listos para agregar pruebas
+        automatizadas.
+================================================================================
