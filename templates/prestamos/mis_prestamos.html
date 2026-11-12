@@ -195,6 +195,12 @@
                                 </button>
                             </form>
                         {% endif %}
+
+                        {% if p.estado == 'ACTIVO' %}
+                            <a href="{% url 'renovar_prestamo' p.id %}" class="btn btn-sm btn-outline-primary mt-2" style="font-size:12px;">
+                                Renovar
+                            </a>
+                        {% endif %}
                     </div>
                 </div>
             </div>

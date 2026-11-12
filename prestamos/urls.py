@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from . import views_cancelacion
+from . import views_renovacion
 
 urlpatterns = [
     # Solicita el préstamo de un libro
@@ -11,6 +12,9 @@ urlpatterns = [
 
     # Cancela una solicitud que no se ha recogido
     path('cancelar/<int:prestamo_id>/', views_cancelacion.cancelar_solicitud, name='cancelar_solicitud'),
+
+    # Renueva un préstamo activo
+    path('renovar/<int:prestamo_id>/', views_renovacion.renovar_prestamo, name='renovar_prestamo'),
 
     # Panel del bibliotecario para entregar y recibir libros
     path('gestion/', views.gestion_prestamos, name='gestion_prestamos'),
