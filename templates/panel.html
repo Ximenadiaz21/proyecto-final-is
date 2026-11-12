@@ -529,6 +529,27 @@
                     </div>
                 </div>
 
+                <!-- Muestra la atención de sugerencias de adquisición (CU-33) -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="tarjeta">
+                        <div class="tarjeta-icono">
+                            <i class="bi bi-journal-plus"></i>
+                        </div>
+
+                        <h3>Sugerencias</h3>
+
+                        <p>
+                            Revisa y aprueba o rechaza las propuestas
+                            de libros enviadas por profesores.
+                        </p>
+
+                        <a href="{% url 'gestion_sugerencias' %}" class="enlace-admin">
+                            Atender sugerencias
+                            <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+
                 <!-- Muestra la sección de reportes -->
                 <div class="col-md-6 col-lg-4">
                     <div class="tarjeta">
@@ -724,7 +745,7 @@
                     </div>
                 </div>
 
-                <!-- Muestra las sugerencias de adquisición -->
+                <!-- Muestra las sugerencias de adquisición (CU-16) -->
                 <div class="col-md-6">
                     <div class="tarjeta">
                         <div class="tarjeta-icono">
@@ -738,7 +759,11 @@
                             ampliar el catálogo escolar.
                         </p>
 
-                        <span class="estado">En desarrollo</span>
+                        <!-- Abre el formulario e historial de sugerencias del profesor -->
+                        <a href="{% url 'mis_sugerencias' %}" class="enlace-admin">
+                            Sugerir o ver propuestas
+                            <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
                     </div>
                 </div>
 

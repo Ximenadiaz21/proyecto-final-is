@@ -1,6 +1,9 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import Usuario, Estudiante, Profesor, Carrera, Departamento, Notificacion
+from .models import (
+    Usuario, Estudiante, Profesor, Carrera,
+    Departamento, Notificacion, SugerenciaAdquisicion,
+)
 
 
 @admin.register(Usuario)
@@ -83,3 +86,17 @@ class NotificacionAdmin(admin.ModelAdmin):
     search_fields = ('usuario__username', 'mensaje')
     ordering = ('-id',)
     list_select_related = ('usuario',)
+
+
+# Administra las sugerencias de adquisición enviadas por los profesores (CU-16, CU-33)
+@admin.register(SugerenciaAdquisicion)
+class SugerenciaAdquisicionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'titulo', 'autores', 'isbn', 'profesor_nombre', 'estado', 'fecha')
+    list_filter = ('estado',)
+    search_fields = ('titulo', 'autores', 'isbn', 'profesor__usuario__username')
+    ordering = ('-fecha', '-id')
+    list_select_related = ('profesor__usuario',)
+
+    @admin.display(description='Profesor', ordering='profesor__usuario__username')
+    def profesor_nombre(self, obj):
+        return obj.profesor.usuario.get_full_name() or obj.profesor.usuario.username

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{{ titulo }} | Biblioteca Escolar</title>
+
+    <!-- Carga Bootstrap y los iconos del sistema -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+    <style>
+        /* Variables de color institucionales de la biblioteca */
+        :root {
+            --azul: #142b43;
+            --azul-secundario: #284b68;
+            --dorado: #c5a16b;
+            --fondo: #f5f6f8;
+            --gris: #6e7b88;
+        }
+
+        /* Estructura general de la página */
+        body {
+            min-height: 100vh;
+            background-color: var(--fondo);
+            font-family: "Segoe UI", Arial, sans-serif;
+            color: #273747;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Barra de navegación superior */
+        .navbar-biblioteca { background-color: var(--azul); padding: 12px 0; }
+
+        .marca {
+            display: flex; align-items: center; gap: 12px;
+            color: white; text-decoration: none;
+            font-size: 20px; font-weight: 600;
+        }
+        .marca:hover { color: white; }
+        .marca i { color: var(--dorado); font-size: 26px; }
+
+        .usuario-navbar { color: #dce3e9; font-size: 13px; }
+
+        .btn-salir {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.5);
+            border-radius: 7px; padding: 8px 16px;
+            color: white; font-size: 13px; transition: 0.2s;
+        }
+        .btn-salir:hover { background-color: white; color: var(--azul); }
+
+        /* Contenedor principal centrado */
+        .contenido {
+            width: 100%; max-width: 1120px;
+            margin: 25px auto 10px; padding: 0 24px; flex: 1;
+        }
+
+        /* Estilos para los títulos y encabezados */
+        .etiqueta {
+            color: #9c794b; font-size: 11px; font-weight: 700;
+            letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 7px;
+        }
+
+        h1.titulo {
+            color: var(--azul);
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 32px; font-weight: 400; margin-bottom: 8px;
+        }
+
+        .linea-dorada { width: 55px; height: 3px; margin: 13px 0 20px; background-color: var(--dorado); }
+
+        .titulo-seccion {
+            color: var(--azul);
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 22px; margin: 26px 0 14px;
+        }
+
+        /* Cajas para formularios y tarjetas de sugerencias */
+        .caja {
+            background: white; border: 1px solid #e4e8ed;
+            border-radius: 11px; padding: 20px 22px; margin-bottom: 16px;
+        }
+
+        .sugerencia {
+            background: white; border: 1px solid #e4e8ed;
+            border-radius: 11px; padding: 16px 20px; margin-bottom: 12px;
+        }
+        .sugerencia h3 { color: var(--azul); font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+        .sugerencia .detalle { color: var(--gris); font-size: 12px; line-height: 1.7; margin: 0; }
+        .sugerencia .justificacion {
+            background: #f8f9fb; border-radius: 7px; padding: 10px 14px;
+            font-size: 13px; color: #273747; margin-top: 10px;
+        }
+        .sugerencia .respuesta-biblio {
+            border-left: 3px solid var(--dorado); background: #fdfbf7;
+            padding: 8px 12px; border-radius: 0 7px 7px 0;
+            font-size: 12px; color: #4a5568; margin-top: 8px;
+        }
+
+        /* Campos del formulario */
+        .form-label { color: var(--azul); font-size: 13px; font-weight: 600; margin-bottom: 5px; }
+        .form-control { font-size: 13px; border-radius: 7px; border: 1px solid #dce2e8; }
+        .form-control:focus {
+            border-color: var(--azul-secundario);
+            box-shadow: 0 0 0 3px rgba(40,75,104,0.1);
+        }
+        .ayuda { color: var(--gris); font-size: 11px; margin-top: 4px; }
+
+        /* Etiquetas de estado de la sugerencia */
+        .badge-estado {
+            display: inline-block; padding: 4px 10px; border-radius: 5px;
+            font-size: 11px; font-weight: 600; background: #f1f3f5; color: #697784;
+        }
+        .badge-PENDIENTE { background: #fff4de; color: #9a6a12; }
+        .badge-APROBADA { background: #e3f4ea; color: #1f7a45; }
+        .badge-RECHAZADA { background: #fde8e8; color: #9b1c1c; }
+
+        /* Botón principal de envío */
+        .btn-accion {
+            border: 0; border-radius: 7px; padding: 9px 18px;
+            font-size: 13px; font-weight: 600; color: white;
+            background-color: var(--azul); transition: 0.2s;
+        }
+        .btn-accion:hover { background-color: var(--azul-secundario); color: white; }
+
+        /* Mensaje cuando todavía no hay sugerencias registradas */
+        .vacio {
+            background: white; border: 1px dashed #cfd6dd; border-radius: 11px;
+            padding: 22px; text-align: center; color: var(--gris); font-size: 13px;
+        }
+
+        .enlace-admin {
+            color: var(--azul-secundario); text-decoration: none;
+            font-size: 12px; font-weight: 600;
+        }
+        .enlace-admin:hover { text-decoration: underline; }
+
+        /* Pie de página */
+        .pie-pagina { text-align: center; color: #98a2ad; font-size: 11px; padding: 12px 15px; }
+
+        /* Diseño adaptable para pantallas móviles */
+        @media (max-width: 700px) {
+            .usuario-navbar { display: none; }
+            .contenido { padding: 0 18px; }
+            h1.titulo { font-size: 27px; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Barra de navegación superior -->
+    <nav class="navbar-biblioteca">
+        <div class="container d-flex justify-content-between align-items-center">
+            <a href="{% url 'panel' %}" class="marca">
+                <i class="bi bi-book-half"></i>
+                Biblioteca Escolar
+            </a>
+
+            <div class="d-flex align-items-center gap-4">
+                <span class="usuario-navbar">
+                    <i class="bi bi-person-circle me-2"></i>
+                    {{ usuario.username }}
+                </span>
+
+                <!-- Formulario para cerrar sesión -->
+                <form method="post" action="{% url 'logout' %}" class="m-0">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-salir">Cerrar sesión</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <main class="contenido">
+
+        <!-- Muestra alertas y mensajes de retroalimentación del sistema -->
+        {% if messages %}
+            {% for mensaje in messages %}
+                <div class="alert alert-{% if mensaje.tags == 'error' %}danger{% else %}{{ mensaje.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                    {{ mensaje }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Encabezado principal -->
+        <div class="etiqueta">Sistema de Gestión de Biblioteca</div>
+        <h1 class="titulo">Sugerir adquisición de libro</h1>
+        <div class="linea-dorada"></div>
+
+        <!-- Enlace para regresar al panel del profesor -->
+        <a href="{% url 'panel' %}" class="enlace-admin">
+            <i class="bi bi-arrow-left me-1"></i> Volver al panel
+        </a>
+
+        <!-- Formulario para enviar una nueva propuesta de libro (CU-16) -->
+        <h2 class="titulo-seccion">Nueva propuesta</h2>
+
+        <div class="caja">
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="row g-3">
+                    <!-- Campo: Título de la obra sugerida -->
+                    <div class="col-md-6">
+                        <label for="id_titulo" class="form-label">Título del libro *</label>
+                        <input
+                            type="text"
+                            name="titulo"
+                            id="id_titulo"
+                            class="form-control"
+                            maxlength="255"
+                            placeholder="Ej. Ingeniería de Software"
+                            value="{{ datos.titulo }}"
+                            required
+                        >
+                    </div>
+
+                    <!-- Campo: Autor o autores -->
+                    <div class="col-md-4">
+                        <label for="id_autores" class="form-label">Autor(es) *</label>
+                        <input
+                            type="text"
+                            name="autores"
+                            id="id_autores"
+                            class="form-control"
+                            maxlength="255"
+                            placeholder="Ej. Ian Sommerville"
+                            value="{{ datos.autores }}"
+                            required
+                        >
+                    </div>
+
+                    <!-- Campo opcional: ISBN -->
+                    <div class="col-md-2">
+                        <label for="id_isbn" class="form-label">ISBN (opcional)</label>
+                        <input
+                            type="text"
+                            name="isbn"
+                            id="id_isbn"
+                            class="form-control"
+                            maxlength="13"
+                            placeholder="10 o 13 dígitos"
+                            value="{{ datos.isbn }}"
+                        >
+                        <div class="ayuda">Sin guiones ni espacios.</div>
+                    </div>
+
+                    <!-- Campo: Justificación académica -->
+                    <div class="col-12">
+                        <label for="id_justificacion" class="form-label">Justificación académica *</label>
+                        <textarea
+                            name="justificacion"
+                            id="id_justificacion"
+                            rows="3"
+                            class="form-control"
+                            placeholder="Explica para qué asignatura o proyecto académico se requiere esta obra..."
+                            required
+                        >{{ datos.justificacion }}</textarea>
+                    </div>
+
+                    <!-- Botón para enviar la solicitud al bibliotecario -->
+                    <div class="col-12 text-end">
+                        <button type="submit" class="btn-accion">
+                            <i class="bi bi-send me-1"></i> Enviar sugerencia
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Historial de sugerencias enviadas por el profesor -->
+        <h2 class="titulo-seccion">Mis sugerencias enviadas</h2>
+
+        {% for s in sugerencias %}
+            <div class="sugerencia">
+                <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                    <div class="flex-grow-1">
+                        <h3>{{ s.titulo }}</h3>
+                        <p class="detalle">
+                            Autor(es): <strong>{{ s.autores }}</strong>
+                            {% if s.isbn %} · ISBN: <code>{{ s.isbn }}</code>{% endif %}
+                            <br>
+                            Fecha de solicitud: {{ s.fecha|date:"d/m/Y H:i" }}
+                        </p>
+
+                        <!-- Muestra la justificación enviada por el profesor -->
+                        <div class="justificacion">
+                            <strong>Justificación:</strong> {{ s.justificacion }}
+                        </div>
+
+                        <!-- Muestra la respuesta del bibliotecario cuando ya fue atendida -->
+                        {% if s.respuesta %}
+                            <div class="respuesta-biblio">
+                                <strong>Respuesta de biblioteca:</strong> {{ s.respuesta }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Etiqueta con el estado actual de la propuesta -->
+                    <div>
+                        <span class="badge-estado badge-{{ s.estado }}">{{ s.get_estado_display|upper }}</span>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="vacio">Todavía no has enviado ninguna sugerencia de adquisición.</div>
+        {% endfor %}
+
+    </main>
+
+    <!-- Pie de página institucional -->
+    <footer class="pie-pagina">
+        © 2026 Biblioteca Escolar · Sistema de Gestión
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

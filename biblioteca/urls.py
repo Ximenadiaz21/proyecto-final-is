@@ -16,6 +16,11 @@ from cuentas.views import (
     marcar_notificacion_leida,
     marcar_todas_leidas,
 )
+from cuentas.views_sugerencias import (
+    mis_sugerencias,
+    gestion_sugerencias,
+    responder_sugerencia,
+)
 
 
 urlpatterns = [
@@ -62,6 +67,11 @@ urlpatterns = [
     path('notificaciones/', mis_notificaciones, name='mis_notificaciones'),
     path('notificaciones/<int:notificacion_id>/leer/', marcar_notificacion_leida, name='marcar_notificacion_leida'),
     path('notificaciones/leer-todas/', marcar_todas_leidas, name='marcar_todas_leidas'),
+
+    # Sugerencias de adquisición de libros (CU-16, CU-33)
+    path('sugerencias/', mis_sugerencias, name='mis_sugerencias'),
+    path('sugerencias/gestion/', gestion_sugerencias, name='gestion_sugerencias'),
+    path('sugerencias/<int:sugerencia_id>/responder/', responder_sugerencia, name='responder_sugerencia'),
 
     # Conecta el catálogo de libros
     path('catalogo/', include('catalogo.urls')),

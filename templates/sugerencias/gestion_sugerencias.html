@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{{ titulo }} | Biblioteca Escolar</title>
+
+    <!-- Carga Bootstrap y los iconos del sistema -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+    <style>
+        /* Variables de color institucionales de la biblioteca */
+        :root {
+            --azul: #142b43;
+            --azul-secundario: #284b68;
+            --dorado: #c5a16b;
+            --fondo: #f5f6f8;
+            --gris: #6e7b88;
+        }
+
+        /* Estructura general de la página */
+        body {
+            min-height: 100vh;
+            background-color: var(--fondo);
+            font-family: "Segoe UI", Arial, sans-serif;
+            color: #273747;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Barra de navegación superior */
+        .navbar-biblioteca { background-color: var(--azul); padding: 12px 0; }
+
+        .marca {
+            display: flex; align-items: center; gap: 12px;
+            color: white; text-decoration: none;
+            font-size: 20px; font-weight: 600;
+        }
+        .marca:hover { color: white; }
+        .marca i { color: var(--dorado); font-size: 26px; }
+
+        .usuario-navbar { color: #dce3e9; font-size: 13px; }
+
+        .btn-salir {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.5);
+            border-radius: 7px; padding: 8px 16px;
+            color: white; font-size: 13px; transition: 0.2s;
+        }
+        .btn-salir:hover { background-color: white; color: var(--azul); }
+
+        /* Contenedor principal centrado */
+        .contenido {
+            width: 100%; max-width: 1120px;
+            margin: 25px auto 10px; padding: 0 24px; flex: 1;
+        }
+
+        /* Estilos de encabezados */
+        .etiqueta {
+            color: #9c794b; font-size: 11px; font-weight: 700;
+            letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 7px;
+        }
+
+        h1.titulo {
+            color: var(--azul);
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 32px; font-weight: 400; margin-bottom: 8px;
+        }
+
+        .linea-dorada { width: 55px; height: 3px; margin: 13px 0 20px; background-color: var(--dorado); }
+
+        .titulo-seccion {
+            color: var(--azul);
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 22px; margin: 26px 0 14px;
+        }
+
+        /* Tarjetas de cada sugerencia */
+        .sugerencia {
+            background: white; border: 1px solid #e4e8ed;
+            border-radius: 11px; padding: 18px 20px; margin-bottom: 12px;
+        }
+        .sugerencia h3 { color: var(--azul); font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+        .sugerencia .detalle { color: var(--gris); font-size: 12px; line-height: 1.7; margin: 0; }
+        .sugerencia .justificacion {
+            background: #f8f9fb; border-radius: 7px; padding: 10px 14px;
+            font-size: 13px; color: #273747; margin-top: 10px;
+        }
+        .sugerencia .respuesta-biblio {
+            border-left: 3px solid var(--dorado); background: #fdfbf7;
+            padding: 8px 12px; border-radius: 0 7px 7px 0;
+            font-size: 12px; color: #4a5568; margin-top: 8px;
+        }
+
+        /* Sección de formulario de dictamen para el bibliotecario */
+        .acciones {
+            border-top: 1px solid #eef0f3;
+            margin-top: 14px;
+            padding-top: 12px;
+        }
+        .acciones .form-control, .acciones .form-select { font-size: 12px; border-radius: 7px; }
+
+        /* Etiquetas de estado */
+        .badge-estado {
+            display: inline-block; padding: 4px 10px; border-radius: 5px;
+            font-size: 11px; font-weight: 600; background: #f1f3f5; color: #697784;
+        }
+        .badge-PENDIENTE { background: #fff4de; color: #9a6a12; }
+        .badge-APROBADA { background: #e3f4ea; color: #1f7a45; }
+        .badge-RECHAZADA { background: #fde8e8; color: #9b1c1c; }
+
+        /* Botones de aprobación y rechazo */
+        .btn-aprobar {
+            border: 0; border-radius: 7px; padding: 8px 14px;
+            font-size: 12px; font-weight: 600; color: white;
+            background-color: #2f7d4f; white-space: nowrap;
+        }
+        .btn-aprobar:hover { background-color: #25633e; }
+
+        .btn-rechazar {
+            border: 0; border-radius: 7px; padding: 8px 14px;
+            font-size: 12px; font-weight: 600; color: white;
+            background-color: #8c2f2f; white-space: nowrap;
+        }
+        .btn-rechazar:hover { background-color: #6f2424; }
+
+        /* Contenedor vacío */
+        .vacio {
+            background: white; border: 1px dashed #cfd6dd; border-radius: 11px;
+            padding: 22px; text-align: center; color: var(--gris); font-size: 13px;
+        }
+
+        .enlace-admin {
+            color: var(--azul-secundario); text-decoration: none;
+            font-size: 12px; font-weight: 600;
+        }
+        .enlace-admin:hover { text-decoration: underline; }
+
+        .pie-pagina { text-align: center; color: #98a2ad; font-size: 11px; padding: 12px 15px; }
+
+        @media (max-width: 700px) {
+            .usuario-navbar { display: none; }
+            .contenido { padding: 0 18px; }
+            h1.titulo { font-size: 27px; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Barra de navegación superior -->
+    <nav class="navbar-biblioteca">
+        <div class="container d-flex justify-content-between align-items-center">
+            <a href="{% url 'panel' %}" class="marca">
+                <i class="bi bi-book-half"></i>
+                Biblioteca Escolar
+            </a>
+
+            <div class="d-flex align-items-center gap-4">
+                <span class="usuario-navbar">
+                    <i class="bi bi-person-circle me-2"></i>
+                    {{ usuario.username }}
+                </span>
+
+                <!-- Cierra la sesión activa -->
+                <form method="post" action="{% url 'logout' %}" class="m-0">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-salir">Cerrar sesión</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <main class="contenido">
+
+        <!-- Muestra los mensajes de confirmación o error del sistema -->
+        {% if messages %}
+            {% for mensaje in messages %}
+                <div class="alert alert-{% if mensaje.tags == 'error' %}danger{% else %}{{ mensaje.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                    {{ mensaje }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Encabezado principal -->
+        <div class="etiqueta">Administración de biblioteca</div>
+        <h1 class="titulo">Sugerencias de adquisición</h1>
+        <div class="linea-dorada"></div>
+
+        <!-- Enlace para regresar al panel del bibliotecario -->
+        <a href="{% url 'panel' %}" class="enlace-admin">
+            <i class="bi bi-arrow-left me-1"></i> Volver al panel
+        </a>
+
+        <!-- Lista de sugerencias pendientes de revisión (CU-33) -->
+        <h2 class="titulo-seccion">Pendientes de revisión ({{ pendientes|length }})</h2>
+
+        {% for s in pendientes %}
+            <div class="sugerencia">
+                <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                    <div class="flex-grow-1">
+                        <h3>{{ s.titulo }}</h3>
+                        <p class="detalle">
+                            Autor(es): <strong>{{ s.autores }}</strong>
+                            {% if s.isbn %} · ISBN: <code>{{ s.isbn }}</code>{% endif %}
+                            <br>
+                            Propuesto por: <strong>{{ s.profesor.usuario.get_full_name|default:s.profesor.usuario.username }}</strong>
+                            ({{ s.profesor.num_empleado }} · {{ s.profesor.departamento.nombre }})
+                            · {{ s.fecha|date:"d/m/Y H:i" }}
+                        </p>
+
+                        <!-- Muestra la justificación académica del profesor -->
+                        <div class="justificacion">
+                            <strong>Justificación del profesor:</strong> {{ s.justificacion }}
+                        </div>
+                    </div>
+
+                    <div>
+                        <span class="badge-estado badge-PENDIENTE">PENDIENTE</span>
+                    </div>
+                </div>
+
+                <!-- Formulario para aprobar o rechazar la sugerencia con comentario -->
+                <div class="acciones">
+                    <form method="post" action="{% url 'responder_sugerencia' s.id %}" class="row g-2 align-items-center">
+                        {% csrf_token %}
+                        <div class="col-md-8">
+                            <input
+                                type="text"
+                                name="respuesta"
+                                class="form-control"
+                                maxlength="255"
+                                placeholder="Escribe una respuesta o comentario para el profesor (obligatorio al rechazar)..."
+                            >
+                        </div>
+                        <div class="col-md-4 d-flex gap-2 justify-content-md-end">
+                            <button type="submit" name="estado" value="APROBADA" class="btn-aprobar">
+                                <i class="bi bi-check-lg me-1"></i> Aprobar
+                            </button>
+                            <button type="submit" name="estado" value="RECHAZADA" class="btn-rechazar">
+                                <i class="bi bi-x-lg me-1"></i> Rechazar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        {% empty %}
+            <div class="vacio">No hay sugerencias de adquisición pendientes por atender.</div>
+        {% endfor %}
+
+        <!-- Historial de sugerencias ya evaluadas -->
+        <h2 class="titulo-seccion">Historial de sugerencias atendidas</h2>
+
+        {% for s in historial %}
+            <div class="sugerencia">
+                <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                    <div class="flex-grow-1">
+                        <h3>{{ s.titulo }}</h3>
+                        <p class="detalle">
+                            Autor(es): <strong>{{ s.autores }}</strong>
+                            {% if s.isbn %} · ISBN: <code>{{ s.isbn }}</code>{% endif %}
+                            <br>
+                            Propuesto por: {{ s.profesor.usuario.get_full_name|default:s.profesor.usuario.username }}
+                            ({{ s.profesor.departamento.nombre }}) · {{ s.fecha|date:"d/m/Y H:i" }}
+                        </p>
+
+                        <div class="justificacion">
+                            <strong>Justificación:</strong> {{ s.justificacion }}
+                        </div>
+
+                        {% if s.respuesta %}
+                            <div class="respuesta-biblio">
+                                <strong>Respuesta registrada:</strong> {{ s.respuesta }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <span class="badge-estado badge-{{ s.estado }}">{{ s.get_estado_display|upper }}</span>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="vacio">Todavía no se han atendido sugerencias de adquisición.</div>
+        {% endfor %}
+
+    </main>
+
+    <!-- Pie de página institucional -->
+    <footer class="pie-pagina">
+        © 2026 Biblioteca Escolar · Sistema de Gestión
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
