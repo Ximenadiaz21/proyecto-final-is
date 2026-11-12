@@ -16,9 +16,9 @@ from .models import Multa, Pago
 METODOS_VALIDOS = ['EFECTIVO', 'TARJETA', 'TRANSFERENCIA']
 
 
-# Revisa que el usuario sea bibliotecario
+# Revisa que el usuario sea bibliotecario activo y no esté bloqueado
 def es_bibliotecario(usuario):
-    return usuario.tipo_usuario == 'BIBLIOTECARIO'
+    return usuario.tipo_usuario == 'BIBLIOTECARIO' and not usuario.bloqueado
 
 
 # Calcula cuánto se ha pagado de una multa
@@ -121,7 +121,8 @@ def registrar_pago(request, multa_id):
             return redirect('gestion_multas')
 
         ahora = timezone.now()
-        folio = f"REC-{timezone.localtime(ahora):%Y%m%d%H%M%S}-{multa.id}"
+        num_pago = multa.pago_set.count() + 1
+        folio = f"REC-{timezone.localtime(ahora):%Y%m%d%H%M%S}-{multa.id}-{num_pago}"
 
         Pago.objects.create(
             multa=multa,

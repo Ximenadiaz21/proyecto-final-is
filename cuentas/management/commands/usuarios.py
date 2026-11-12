@@ -102,22 +102,28 @@ class Command(BaseCommand):
                     }
                 )
 
-        # Crea un bibliotecario adicional sin modificar el existente
-        usuario, creado = Usuario.objects.get_or_create(
-            username='bibliotecario_demo',
-            defaults={
-                'first_name': 'Bibliotecario',
-                'last_name': 'Prueba',
-                'email': 'bibliotecario.demo@example.com',
-                'tipo_usuario': 'BIBLIOTECARIO',
-                'is_active': True,
-                'is_staff': False,
-            }
-        )
+        # Crea 2 bibliotecarios de prueba según la especificación (Sección 12)
+        bibliotecarios_demo = [
+            ('bibliotecario_demo', 'Bibliotecario', 'Principal', 'bibliotecario.demo@example.com'),
+            ('bibliotecario02', 'Bibliotecario', 'Auxiliar', 'bibliotecario02@example.com'),
+        ]
 
-        if creado:
-            usuario.set_password(password)
-            usuario.save()
+        for username, nombre, apellido, correo in bibliotecarios_demo:
+            usuario, creado = Usuario.objects.get_or_create(
+                username=username,
+                defaults={
+                    'first_name': nombre,
+                    'last_name': apellido,
+                    'email': correo,
+                    'tipo_usuario': 'BIBLIOTECARIO',
+                    'is_active': True,
+                    'is_staff': False,
+                }
+            )
+
+            if creado:
+                usuario.set_password(password)
+                usuario.save()
 
         # Muestra los resultados de la carga
         self.stdout.write(self.style.SUCCESS(

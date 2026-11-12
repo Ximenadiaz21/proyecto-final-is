@@ -44,8 +44,8 @@ Proyecto final de Ingeniería de Software. Aplicación web hecha con **Django 5.
    Copia `.env.example` como `.env` y escribe tu usuario y contraseña de MySQL:
 
    ```
-   copy  .env   .env.example      # Windows
-   cp  .env    .env.example       # Linux / macOS
+   copy .env.example .env      # Windows
+   cp .env.example .env        # Linux / macOS
    ```
 
    Las credenciales no se suben al repositorio: `.env` está en `.gitignore`.
@@ -81,6 +81,7 @@ Proyecto final de Ingeniería de Software. Aplicación web hecha con **Django 5.
 | Rol | Usuario | Contraseña |
 |---|---|---|
 | Bibliotecario | bibliotecario_demo | passbiblio |
+| Bibliotecario | bibliotecario02 | passbiblio |
 | Profesor | profesor01 | passbiblio |
 | Profesor | profesor02 | passbiblio |
 | Profesor | profesor03 | passbiblio |
