@@ -6,17 +6,20 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.db import transaction
-from django.db.models import Q, Sum
 from django.utils import timezone
 
 from catalogo.models import Libro, Ejemplar
 from cuentas.models import Notificacion
 from .models import PoliticaPrestamo, Prestamo
+from .reglas import motivo_inelegible, liberar_o_asignar_ejemplar
 from multas.models import Multa
 
 
 # Solicita el préstamo de un libro (CU-06)
+# Ahora solo acepta POST: el botón en lista_libros.html y detalle_libro.html
+# debe ser un <form method="post"> con {% csrf_token %}.
 @login_required
+@require_POST
 def solicitar_prestamo(request, libro_id):
     libro = get_object_or_404(Libro, id=libro_id, activo=1)
     usuario = request.user
@@ -26,40 +29,20 @@ def solicitar_prestamo(request, libro_id):
         messages.error(request, "Los bibliotecarios no pueden solicitar préstamos.")
         return redirect('lista_libros')
 
-    # 2. Revisa bloqueo, multas pendientes y préstamos vencidos (RN-08)
-    if usuario.bloqueado:
-        messages.error(request, "Tu cuenta está bloqueada. No puedes solicitar préstamos.")
+    # 2. Elegibilidad: bloqueo, multas pendientes, préstamos vencidos (CU-07, RN-08)
+    motivo = motivo_inelegible(usuario)
+    if motivo:
+        messages.error(request, motivo)
         return redirect('lista_libros')
 
-    hoy = timezone.localdate()
-
-    multas_pendientes = Multa.objects.filter(usuario=usuario, estado='PENDIENTE')
-    prestamos_vencidos = Prestamo.objects.filter(usuario=usuario).filter(
-        Q(estado='VENCIDO') | Q(estado='ACTIVO', fecha_vencimiento__lt=hoy)
-    ).exists()
-
-    if multas_pendientes.exists():
-        # Suma lo que falta por pagar de todas las multas pendientes
-        adeudo = Decimal('0')
-        for m in multas_pendientes:
-            pagado = m.pago_set.aggregate(t=Sum('monto'))['t'] or Decimal('0')
-            adeudo += m.monto - pagado
-
-        messages.error(request, f"No puedes solicitar libros porque tienes multas pendientes por ${adeudo:.2f} (RN-08).")
-        return redirect('lista_libros')
-
-    if prestamos_vencidos:
-        messages.error(request, "No puedes solicitar libros porque tienes préstamos vencidos. Devuélvelos primero (RN-08).")
-        return redirect('lista_libros')
-
-    # 3. Obtiene la política según el tipo de usuario
+    # 3. Política según el tipo de usuario
     try:
         politica = PoliticaPrestamo.objects.get(tipo_usuario=usuario.tipo_usuario)
     except PoliticaPrestamo.DoesNotExist:
         messages.error(request, "No hay una política de préstamo configurada para tu tipo de usuario.")
         return redirect('lista_libros')
 
-    # 4. Valida el límite de libros simultáneos (RN-02)
+    # 4. Límite de libros simultáneos (RN-02)
     prestamos_activos = Prestamo.objects.filter(
         usuario=usuario,
         estado__in=['SOLICITADO', 'ACTIVO', 'VENCIDO']
@@ -70,13 +53,11 @@ def solicitar_prestamo(request, libro_id):
         return redirect('lista_libros')
 
     # 5. Evita repetir el mismo título (RN-11)
-    mismo_titulo_activo = Prestamo.objects.filter(
+    if Prestamo.objects.filter(
         usuario=usuario,
         ejemplar__libro=libro,
         estado__in=['SOLICITADO', 'ACTIVO', 'VENCIDO']
-    ).exists()
-
-    if mismo_titulo_activo:
+    ).exists():
         messages.error(request, "Ya tienes un préstamo activo o solicitado de este mismo título (RN-11).")
         return redirect('lista_libros')
 
@@ -88,17 +69,17 @@ def solicitar_prestamo(request, libro_id):
         ).first()
 
         if not ejemplar_disponible:
-            messages.error(request, "Lo sentimos, ya no quedan ejemplares disponibles de este libro.")
-            return redirect('lista_libros')
+            messages.error(request, "Ya no quedan ejemplares disponibles de este libro. Puedes reservarlo.")
+            return redirect('detalle_libro', libro_id=libro.id)
 
         ejemplar_disponible.estado = 'RESERVADO'
         ejemplar_disponible.save()
 
-        # Fecha límite para recoger (RN-06)
         ahora = timezone.now()
         limite_recoger = ahora + timedelta(hours=politica.horas_para_recoger)
+        limite_local = timezone.localtime(limite_recoger)
 
-        Prestamo.objects.create(
+        prestamo = Prestamo.objects.create(
             usuario=usuario,
             ejemplar=ejemplar_disponible,
             estado='SOLICITADO',
@@ -107,13 +88,24 @@ def solicitar_prestamo(request, libro_id):
             num_renovaciones=0
         )
 
-        limite_local = timezone.localtime(limite_recoger)
-        messages.success(
-            request,
-            f"¡Solicitud exitosa! Acércate a recoger el ejemplar [{ejemplar_disponible.codigo_inventario}] "
-            f"antes de {limite_local.strftime('%d/%m/%Y %H:%M')}."
+        # Postcondición de CU-06: notificación para el usuario
+        Notificacion.objects.create(
+            usuario=usuario,
+            tipo='GENERAL',
+            mensaje=(
+                f"Solicitud #{prestamo.id} de \"{libro.titulo}\" registrada. "
+                f"Recoge el ejemplar {ejemplar_disponible.codigo_inventario} antes del "
+                f"{limite_local.strftime('%d/%m/%Y %H:%M')}."
+            ),
+            leida=0,
+            fecha=ahora
         )
 
+    messages.success(
+        request,
+        f"¡Solicitud exitosa! Acércate a recoger el ejemplar [{ejemplar_disponible.codigo_inventario}] "
+        f"antes de {limite_local.strftime('%d/%m/%Y %H:%M')}."
+    )
     return redirect('mis_prestamos')
 
 
@@ -122,7 +114,6 @@ def solicitar_prestamo(request, libro_id):
 def mis_prestamos(request):
     usuario = request.user
 
-    # Solo estudiantes y profesores tienen préstamos propios
     if usuario.tipo_usuario not in ['ESTUDIANTE', 'PROFESOR']:
         messages.error(request, "Esta sección es solo para estudiantes y profesores.")
         return redirect('panel')
@@ -133,7 +124,6 @@ def mis_prestamos(request):
         'ejemplar', 'ejemplar__libro'
     ).order_by('-fecha_solicitud')
 
-    # Separa los préstamos en curso del historial
     estados_en_curso = ['SOLICITADO', 'ACTIVO', 'VENCIDO']
     en_curso = [p for p in prestamos if p.estado in estados_en_curso]
     historial = [p for p in prestamos if p.estado not in estados_en_curso]
@@ -148,9 +138,9 @@ def mis_prestamos(request):
     return render(request, 'prestamos/mis_prestamos.html', contexto)
 
 
-# Revisa que el usuario sea bibliotecario
+# Revisa que el usuario sea bibliotecario y no esté bloqueado
 def es_bibliotecario(usuario):
-    return usuario.tipo_usuario == 'BIBLIOTECARIO'
+    return usuario.tipo_usuario == 'BIBLIOTECARIO' and not usuario.bloqueado
 
 
 # Muestra las solicitudes por entregar y los libros prestados
@@ -183,7 +173,7 @@ def gestion_prestamos(request):
     return render(request, 'prestamos/gestion_prestamos.html', contexto)
 
 
-# Entrega el libro al usuario: SOLICITADO -> ACTIVO
+# Entrega el libro al usuario: SOLICITADO -> ACTIVO (CU-23, incluye CU-07)
 @login_required
 @require_POST
 def entregar_prestamo(request, prestamo_id):
@@ -201,7 +191,12 @@ def entregar_prestamo(request, prestamo_id):
             messages.error(request, "Este préstamo ya no está en estado solicitado.")
             return redirect('gestion_prestamos')
 
-        # Toma los días de préstamo según el tipo de usuario
+        # Re-verifica elegibilidad al momento de entregar (CU-23 <<include>> CU-07)
+        motivo = motivo_inelegible(prestamo.usuario)
+        if motivo:
+            messages.error(request, f"No se puede entregar: {motivo}")
+            return redirect('gestion_prestamos')
+
         try:
             politica = PoliticaPrestamo.objects.get(tipo_usuario=prestamo.usuario.tipo_usuario)
         except PoliticaPrestamo.DoesNotExist:
@@ -227,7 +222,7 @@ def entregar_prestamo(request, prestamo_id):
     return redirect('gestion_prestamos')
 
 
-# Recibe el libro de vuelta: ACTIVO/VENCIDO -> DEVUELTO (genera multa si hay retraso)
+# Recibe el libro: ACTIVO/VENCIDO -> DEVUELTO (multa si hay retraso, cola FIFO RN-12)
 @login_required
 @require_POST
 def recibir_devolucion(request, prestamo_id):
@@ -237,10 +232,11 @@ def recibir_devolucion(request, prestamo_id):
 
     multa = None
     dias_retraso = 0
+    reserva_asignada = None
 
     with transaction.atomic():
         prestamo = get_object_or_404(
-            Prestamo.objects.select_for_update().select_related('ejemplar', 'usuario'),
+            Prestamo.objects.select_for_update().select_related('ejemplar', 'ejemplar__libro', 'usuario'),
             id=prestamo_id
         )
 
@@ -251,11 +247,10 @@ def recibir_devolucion(request, prestamo_id):
         ahora = timezone.now()
         hoy = timezone.localdate()
 
-        # Calcula los días de retraso (RN-07)
+        # Días de retraso (RN-07)
         if prestamo.fecha_vencimiento and prestamo.fecha_vencimiento < hoy:
             dias_retraso = (hoy - prestamo.fecha_vencimiento).days
 
-        # Genera la multa por retraso dentro de la misma transacción
         if dias_retraso > 0:
             try:
                 politica = PoliticaPrestamo.objects.get(tipo_usuario=prestamo.usuario.tipo_usuario)
@@ -289,8 +284,8 @@ def recibir_devolucion(request, prestamo_id):
         prestamo.recibido_por = request.user
         prestamo.save()
 
-        prestamo.ejemplar.estado = 'DISPONIBLE'
-        prestamo.ejemplar.save()
+        # RN-12 / CU-25 flujo 6a: atiende la cola de reservas o deja DISPONIBLE
+        reserva_asignada = liberar_o_asignar_ejemplar(prestamo.ejemplar, ahora)
 
     if multa:
         messages.warning(
@@ -300,5 +295,11 @@ def recibir_devolucion(request, prestamo_id):
         )
     else:
         messages.success(request, "Devolución registrada correctamente.")
+
+    if reserva_asignada:
+        messages.info(
+            request,
+            f"El ejemplar quedó apartado para {reserva_asignada.usuario.username} (reserva #{reserva_asignada.id})."
+        )
 
     return redirect('gestion_prestamos')

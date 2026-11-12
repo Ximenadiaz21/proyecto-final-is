@@ -425,7 +425,8 @@
                             Ver catálogo
                             <i class="bi bi-arrow-right ms-1"></i>
                         </a>
-                                                <br>
+                        <br>
+                        <!-- Solo el bibliotecario gestiona ejemplares -->
                         <a href="{% url 'gestion_ejemplares' %}" class="enlace-admin">
                             Gestionar ejemplares
                             <i class="bi bi-arrow-right ms-1"></i>
@@ -447,7 +448,7 @@
                             profesores y personal bibliotecario.
                         </p>
 
-                                                <a href="{% url 'gestion_usuarios' %}" class="enlace-admin">
+                        <a href="{% url 'gestion_usuarios' %}" class="enlace-admin">
                             Gestionar usuarios
                             <i class="bi bi-arrow-right ms-1"></i>
                         </a>
@@ -582,11 +583,6 @@
                             Ver catálogo
                             <i class="bi bi-arrow-right ms-1"></i>
                         </a>
-                                                <br>
-                        <a href="{% url 'gestion_ejemplares' %}" class="enlace-admin">
-                            Gestionar ejemplares
-                            <i class="bi bi-arrow-right ms-1"></i>
-                        </a>
                     </div>
                 </div>
 
@@ -611,7 +607,8 @@
                         </a>
                     </div>
                 </div>
-                                <div class="col-md-6">
+
+                <div class="col-md-6">
                     <div class="tarjeta">
                         <div class="tarjeta-icono">
                             <i class="bi bi-receipt"></i>
@@ -700,7 +697,8 @@
                         <span class="estado">En desarrollo</span>
                     </div>
                 </div>
-                                <div class="col-md-6">
+
+                <div class="col-md-6">
                     <div class="tarjeta">
                         <div class="tarjeta-icono">
                             <i class="bi bi-receipt"></i>

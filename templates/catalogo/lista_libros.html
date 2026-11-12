@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -299,27 +298,34 @@
         }
 
         .btn-prestamo {
-            display: block;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
             width: 100%;
-            background: var(--dorado);
+            background: linear-gradient(135deg, #d2b07c, var(--dorado));
             border: none;
-            color: white;
-            border-radius: 7px;
+            color: var(--azul);
+            border-radius: 8px;
             padding: 11px;
-            text-align: center;
-            text-decoration: none;
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(197, 161, 107, 0.35);
+            transition: transform .15s ease, box-shadow .15s ease;
         }
 
         .btn-prestamo:hover {
-            background: #b18e59;
-            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(197, 161, 107, 0.5);
         }
 
         .btn-prestamo:disabled {
             background: #dce1e6;
             color: #7c8792;
+            box-shadow: none;
+            transform: none;
+            cursor: not-allowed;
         }
 
         .acciones-libro {
@@ -641,11 +647,13 @@
                                 {% if request.user.tipo_usuario == 'ESTUDIANTE' or request.user.tipo_usuario == 'PROFESOR' %}
 
                                     {% if libro.disponibles > 0 %}
-                                        <a href="{% url 'solicitar_prestamo' libro.id %}"
-                                           class="btn-prestamo">
-                                            <i class="bi bi-journal-plus me-1"></i>
-                                            Solicitar préstamo
-                                        </a>
+                                        <form method="post" action="{% url 'solicitar_prestamo' libro.id %}" class="m-0">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn-prestamo">
+                                                <i class="bi bi-bookmark-plus"></i>
+                                                Solicitar préstamo
+                                            </button>
+                                        </form>
                                     {% else %}
                                         <button type="button"
                                                 class="btn-prestamo"

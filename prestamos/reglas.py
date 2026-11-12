@@ -4,6 +4,8 @@ from django.utils import timezone
 from multas.models import Multa
 from .models import Prestamo, Reserva
 
+from datetime import timedelta
+
 
 # Elegibilidad del usuario (CU-07, RN-08).
 # Devuelve el motivo si no puede pedir ni renovar libros, o '' si está al corriente.
@@ -55,3 +57,58 @@ def motivo_no_renovable(prestamo, politica):
         return "Otro usuario reservó este título, por lo que no se puede renovar (RN-09)."
 
     return ''
+
+
+
+def liberar_o_asignar_ejemplar(ejemplar, ahora=None):
+    """RN-12: al liberarse un ejemplar, lo asigna a la reserva PENDIENTE mas
+    antigua del titulo (FIFO) o, si no hay, lo deja DISPONIBLE.
+
+    Debe llamarse dentro de transaction.atomic().
+    Devuelve la Reserva asignada o None.
+    """
+    from cuentas.models import Notificacion
+    from .models import PoliticaPrestamo, Reserva
+
+    ahora = ahora or timezone.now()
+
+    reserva = (
+        Reserva.objects.select_for_update()
+        .select_related('usuario')
+        .filter(libro_id=ejemplar.libro_id, estado='PENDIENTE')
+        .order_by('fecha_reserva', 'id')
+        .first()
+    )
+
+    if reserva is None:
+        ejemplar.estado = 'DISPONIBLE'
+        ejemplar.save()
+        return None
+
+    try:
+        horas = PoliticaPrestamo.objects.get(
+            tipo_usuario=reserva.usuario.tipo_usuario
+        ).horas_para_recoger
+    except PoliticaPrestamo.DoesNotExist:
+        horas = 48  # RN-06 por defecto
+
+    reserva.ejemplar_asignado = ejemplar
+    reserva.estado = 'DISPONIBLE'
+    reserva.fecha_expiracion = ahora + timedelta(hours=horas)
+    reserva.save()
+
+    ejemplar.estado = 'RESERVADO'
+    ejemplar.save()
+
+    Notificacion.objects.create(
+        usuario=reserva.usuario,
+        tipo='RESERVA_DISPONIBLE',
+        mensaje=(
+            f'Tu reserva de "{ejemplar.libro.titulo}" ya esta disponible. '
+            f'Recogela antes del '
+            f'{timezone.localtime(reserva.fecha_expiracion):%d/%m/%Y %H:%M}.'
+        ),
+        leida=0,
+        fecha=ahora,
+    )
+    return reserva
