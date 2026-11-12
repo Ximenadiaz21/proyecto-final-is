@@ -94,6 +94,20 @@
         .btn-accion:hover { background-color: var(--azul-secundario); }
         .btn-entregar { background-color: var(--dorado); }
         .btn-entregar:hover { background-color: #b08d58; }
+        .btn-peligro { background-color: #8c2f2f; }
+        .btn-peligro:hover { background-color: #6f2424; }
+
+        .caja-mostrador {
+            background: white; border: 1px solid #e4e8ed;
+            border-radius: 11px; padding: 18px 20px; margin-top: 18px;
+        }
+        .form-label { color: var(--azul); font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+        .form-control, .form-select { font-size: 13px; border-radius: 7px; border: 1px solid #dce2e8; }
+        details.incidente summary {
+            cursor: pointer; font-size: 12px; font-weight: 600; color: #8c2f2f;
+            list-style: none;
+        }
+        details.incidente summary::-webkit-details-marker { display: none; }
 
         .vacio {
             background: white; border: 1px dashed #cfd6dd; border-radius: 11px;
@@ -160,6 +174,49 @@
             <i class="bi bi-arrow-left me-1"></i> Volver al panel
         </a>
 
+        <!-- Formulario para registrar préstamo directo en mostrador (CU-24) -->
+        <h2 class="titulo-seccion">Préstamo en mostrador</h2>
+        <div class="caja-mostrador">
+            <form method="post" action="{% url 'registrar_prestamo_mostrador' %}">
+                {% csrf_token %}
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label for="username" class="form-label">Usuario lector (username / matrícula)</label>
+                        <input type="text" id="username" name="username" list="lista-lectores"
+                               class="form-control" placeholder="Ej. alumno01 o profesor01" required>
+                        <datalist id="lista-lectores">
+                            {% for l in lectores %}
+                                <option value="{{ l.username }}">{{ l.get_full_name|default:l.username }} ({{ l.get_tipo_usuario_display }})</option>
+                            {% endfor %}
+                        </datalist>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="codigo_inventario" class="form-label">Código de inventario del ejemplar</label>
+                        <input type="text" id="codigo_inventario" name="codigo_inventario" list="lista-ejemplares"
+                               class="form-control" placeholder="Ej. DEMO-00001-1" required>
+                        <datalist id="lista-ejemplares">
+                            {% for e in ejemplares_disponibles %}
+                                <option value="{{ e.codigo_inventario }}">{{ e.libro.titulo }}</option>
+                            {% endfor %}
+                        </datalist>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label for="observaciones" class="form-label">Observaciones (opcional)</label>
+                        <input type="text" id="observaciones" name="observaciones"
+                               class="form-control" maxlength="255" placeholder="Estado físico...">
+                    </div>
+
+                    <div class="col-md-2">
+                        <button type="submit" class="btn-accion btn-entregar w-100">
+                            <i class="bi bi-journal-plus me-1"></i> Prestar
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
         <!-- Muestra las solicitudes pendientes de entrega -->
         <h2 class="titulo-seccion">Por entregar</h2>
 
@@ -223,6 +280,36 @@
                         </form>
                     </div>
                 </div>
+
+                <!-- Opción desplegable para reportar daño o pérdida del ejemplar (CU-27, RN-13) -->
+                <details class="incidente mt-2">
+                    <summary>
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        Reportar daño o pérdida (costo de reposición: ${{ p.ejemplar.libro.costo_reposicion|floatformat:2 }} MXN)
+                    </summary>
+                    <form method="post" action="{% url 'registrar_incidente_ejemplar' p.id %}"
+                          class="row g-2 align-items-end mt-1 pt-2 border-top"
+                          onsubmit="return confirm('¿Confirmar el reporte de incidente y generar la multa de reposición?');">
+                        {% csrf_token %}
+                        <div class="col-sm-4">
+                            <label class="form-label">Tipo de incidente</label>
+                            <select name="motivo" class="form-select" required>
+                                <option value="DANIO">Daño (pasa a EN_REPARACION)</option>
+                                <option value="PERDIDA">Pérdida (pasa a PERDIDO)</option>
+                            </select>
+                        </div>
+                        <div class="col-sm-5">
+                            <label class="form-label">Observaciones del incidente</label>
+                            <input type="text" name="observaciones" class="form-control"
+                                   maxlength="255" placeholder="Describe el daño o reporte de extravío...">
+                        </div>
+                        <div class="col-sm-3">
+                            <button type="submit" class="btn-accion btn-peligro w-100">
+                                Registrar cargo
+                            </button>
+                        </div>
+                    </form>
+                </details>
             </div>
         {% empty %}
             <div class="vacio">No hay libros prestados en este momento.</div>

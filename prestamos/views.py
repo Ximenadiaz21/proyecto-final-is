@@ -9,7 +9,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from catalogo.models import Libro, Ejemplar
-from cuentas.models import Notificacion
+from cuentas.models import Notificacion, Usuario
 from .models import PoliticaPrestamo, Prestamo, Reserva
 from .reglas import motivo_inelegible, liberar_o_asignar_ejemplar
 from multas.models import Multa
@@ -171,11 +171,25 @@ def gestion_prestamos(request):
         'usuario', 'ejemplar', 'ejemplar__libro'
     ).order_by('fecha_vencimiento')
 
+    # Listas para facilitar el registro de préstamos directos en mostrador (CU-24)
+    lectores = Usuario.objects.filter(
+        tipo_usuario__in=['ESTUDIANTE', 'PROFESOR'],
+        is_active=True,
+        bloqueado=False
+    ).order_by('username')
+
+    ejemplares_disponibles = Ejemplar.objects.filter(
+        estado='DISPONIBLE',
+        libro__activo=True
+    ).select_related('libro').order_by('codigo_inventario')
+
     contexto = {
         'usuario': request.user,
         'titulo': 'Gestión de préstamos',
         'por_entregar': por_entregar,
         'prestados': prestados,
+        'lectores': lectores,
+        'ejemplares_disponibles': ejemplares_disponibles,
         'hoy': timezone.localdate(),
     }
 
@@ -311,4 +325,229 @@ def recibir_devolucion(request, prestamo_id):
             f"El ejemplar quedó apartado para {reserva_asignada.usuario.username} (reserva #{reserva_asignada.id})."
         )
 
+    return redirect('gestion_prestamos')
+
+
+# Registra un préstamo directo en mostrador sin solicitud previa: [*] -> ACTIVO (CU-24)
+@login_required
+@require_POST
+def registrar_prestamo_mostrador(request):
+    if not es_bibliotecario(request.user):
+        messages.error(request, "No tienes permiso para registrar préstamos en mostrador.")
+        return redirect('panel')
+
+    username = request.POST.get('username', '').strip()
+    codigo_inventario = request.POST.get('codigo_inventario', '').strip()
+    observaciones = request.POST.get('observaciones', '').strip() or None
+
+    if not username or not codigo_inventario:
+        messages.error(request, "Debes indicar el usuario lector y el código de inventario del ejemplar.")
+        return redirect('gestion_prestamos')
+
+    # 1. Busca al usuario lector activo
+    lector = Usuario.objects.filter(username=username, is_active=True).first()
+    if not lector:
+        messages.error(request, f"No se encontró un usuario activo con username «{username}».")
+        return redirect('gestion_prestamos')
+
+    if lector.tipo_usuario not in ['ESTUDIANTE', 'PROFESOR']:
+        messages.error(request, "Solo se pueden prestar libros a estudiantes y profesores.")
+        return redirect('gestion_prestamos')
+
+    # 2. Verifica elegibilidad del usuario (CU-07, RN-08)
+    motivo = motivo_inelegible(lector)
+    if motivo:
+        messages.error(request, f"No se puede prestar a {lector.username}: {motivo}")
+        return redirect('gestion_prestamos')
+
+    # 3. Obtiene la política según el tipo de usuario (RN-01, RN-02)
+    try:
+        politica = PoliticaPrestamo.objects.get(tipo_usuario=lector.tipo_usuario)
+    except PoliticaPrestamo.DoesNotExist:
+        messages.error(request, "No hay política de préstamo configurada para este tipo de usuario.")
+        return redirect('gestion_prestamos')
+
+    # 4. Verifica límite de libros simultáneos (RN-02)
+    prestamos_activos = Prestamo.objects.filter(
+        usuario=lector,
+        estado__in=['SOLICITADO', 'ACTIVO', 'VENCIDO']
+    ).count()
+
+    if prestamos_activos >= politica.max_libros:
+        messages.error(
+            request,
+            f"El usuario {lector.username} alcanzó su límite de libros permitidos ({politica.max_libros}) (RN-02)."
+        )
+        return redirect('gestion_prestamos')
+
+    # 5. Transacción atómica para bloquear el ejemplar y crear el préstamo (RNF-03)
+    with transaction.atomic():
+        ejemplar = Ejemplar.objects.select_for_update().select_related('libro').filter(
+            codigo_inventario=codigo_inventario
+        ).first()
+
+        if not ejemplar or not ejemplar.libro.activo:
+            messages.error(request, f"No existe un ejemplar activo con código «{codigo_inventario}».")
+            return redirect('gestion_prestamos')
+
+        # RN-15: Solo se puede prestar en mostrador un ejemplar DISPONIBLE
+        if ejemplar.estado != 'DISPONIBLE':
+            messages.error(
+                request,
+                f"El ejemplar [{ejemplar.codigo_inventario}] no está disponible (estado actual: {ejemplar.estado}) (RN-15)."
+            )
+            return redirect('gestion_prestamos')
+
+        # RN-11: Un usuario no puede tener dos préstamos activos del mismo título
+        if Prestamo.objects.filter(
+            usuario=lector,
+            ejemplar__libro=ejemplar.libro,
+            estado__in=['SOLICITADO', 'ACTIVO', 'VENCIDO']
+        ).exists():
+            messages.error(
+                request,
+                f"El usuario {lector.username} ya tiene un préstamo activo o solicitado de «{ejemplar.libro.titulo}» (RN-11)."
+            )
+            return redirect('gestion_prestamos')
+
+        ahora = timezone.now()
+        vencimiento = timezone.localdate() + timedelta(days=politica.dias_prestamo)
+
+        prestamo = Prestamo.objects.create(
+            usuario=lector,
+            ejemplar=ejemplar,
+            estado='ACTIVO',
+            fecha_solicitud=ahora,
+            fecha_prestamo=ahora,
+            fecha_vencimiento=vencimiento,
+            num_renovaciones=0,
+            entregado_por=request.user,
+            observaciones=observaciones
+        )
+
+        ejemplar.estado = 'PRESTADO'
+        ejemplar.save(update_fields=['estado'])
+
+        Notificacion.objects.create(
+            usuario=lector,
+            tipo='GENERAL',
+            mensaje=(
+                f"Préstamo #{prestamo.id} de \"{ejemplar.libro.titulo}\" ({ejemplar.codigo_inventario}) "
+                f"registrado en mostrador. Fecha de devolución: {vencimiento.strftime('%d/%m/%Y')}."
+            ),
+            leida=False,
+            fecha=ahora
+        )
+
+    messages.success(
+        request,
+        f"Préstamo en mostrador registrado: [{ejemplar.codigo_inventario}] entregado a {lector.username}. "
+        f"Devolver antes del {vencimiento.strftime('%d/%m/%Y')}."
+    )
+    return redirect('gestion_prestamos')
+
+
+# Registra la pérdida o el daño de un ejemplar prestado y genera la multa de reposición (CU-27, RN-13)
+@login_required
+@require_POST
+def registrar_incidente_ejemplar(request, prestamo_id):
+    if not es_bibliotecario(request.user):
+        messages.error(request, "No tienes permiso para registrar incidentes de ejemplares.")
+        return redirect('panel')
+
+    motivo = request.POST.get('motivo', '').strip()
+    observaciones = request.POST.get('observaciones', '').strip()
+
+    if motivo not in ['DANIO', 'PERDIDA']:
+        messages.error(request, "Debes indicar si el incidente es por daño o por pérdida.")
+        return redirect('gestion_prestamos')
+
+    multa_retraso = None
+
+    with transaction.atomic():
+        prestamo = get_object_or_404(
+            Prestamo.objects.select_for_update().select_related('ejemplar', 'ejemplar__libro', 'usuario'),
+            id=prestamo_id
+        )
+
+        if prestamo.estado not in ['ACTIVO', 'VENCIDO']:
+            messages.error(request, "Este préstamo ya no está activo.")
+            return redirect('gestion_prestamos')
+
+        ahora = timezone.now()
+        hoy = timezone.localdate()
+        libro = prestamo.ejemplar.libro
+
+        # RN-13: El monto de la multa por pérdida o daño es el costo de reposición del libro
+        monto_reposicion = libro.costo_reposicion if libro.costo_reposicion > Decimal('0') else Decimal('150.00')
+
+        # Si además se reporta después de la fecha de vencimiento, calcula la multa por retraso (RN-07)
+        dias_retraso = prestamo.dias_retraso(hoy)
+        if dias_retraso > 0:
+            try:
+                politica = PoliticaPrestamo.objects.get(tipo_usuario=prestamo.usuario.tipo_usuario)
+                monto_retraso = prestamo.calcular_multa(politica, hoy)
+                if monto_retraso > 0:
+                    multa_retraso = Multa.objects.create(
+                        prestamo=prestamo,
+                        usuario=prestamo.usuario,
+                        motivo='RETRASO',
+                        dias_retraso=dias_retraso,
+                        monto=monto_retraso,
+                        estado='PENDIENTE',
+                        fecha_generacion=ahora
+                    )
+            except PoliticaPrestamo.DoesNotExist:
+                pass
+
+        # Crea la multa adicional por daño o pérdida (RN-13)
+        multa_incidente = Multa.objects.create(
+            prestamo=prestamo,
+            usuario=prestamo.usuario,
+            motivo=motivo,
+            dias_retraso=0,
+            monto=monto_reposicion,
+            estado='PENDIENTE',
+            fecha_generacion=ahora
+        )
+
+        # Actualiza el estado del préstamo y del ejemplar según el diagrama de estados (Sección 10.3)
+        if motivo == 'DANIO':
+            prestamo.estado = 'DEVUELTO'
+            prestamo.ejemplar.estado = 'EN_REPARACION'
+            etiqueta_incidente = 'daño'
+        else:
+            prestamo.estado = 'PERDIDO'
+            prestamo.ejemplar.estado = 'PERDIDO'
+            etiqueta_incidente = 'pérdida'
+
+        prestamo.fecha_devolucion = ahora
+        prestamo.recibido_por = request.user
+        if observaciones:
+            prestamo.observaciones = observaciones[:255]
+            prestamo.ejemplar.observaciones = observaciones[:255]
+        prestamo.save()
+        prestamo.ejemplar.save()
+
+        # Notifica al usuario lector sobre el cargo de reposición
+        Notificacion.objects.create(
+            usuario=prestamo.usuario,
+            tipo='MULTA',
+            mensaje=(
+                f"Se registró una multa de ${multa_incidente.monto:.2f} por {etiqueta_incidente} "
+                f"del ejemplar [{prestamo.ejemplar.codigo_inventario}] de \"{libro.titulo}\" (RN-13)."
+            ),
+            leida=False,
+            fecha=ahora
+        )
+
+    aviso_extra = (
+        f" También se generó multa de ${multa_retraso.monto:.2f} por {dias_retraso} día(s) de retraso."
+        if multa_retraso else ""
+    )
+    messages.warning(
+        request,
+        f"Se registró {etiqueta_incidente} del ejemplar [{prestamo.ejemplar.codigo_inventario}]. "
+        f"Multa por costo de reposición: ${multa_incidente.monto:.2f} para {prestamo.usuario.username}.{aviso_extra}"
+    )
     return redirect('gestion_prestamos')

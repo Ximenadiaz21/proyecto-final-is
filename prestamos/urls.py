@@ -26,8 +26,10 @@ urlpatterns = [
     path('reservas/<int:reserva_id>/atender/', views_reservas.atender_reserva, name='atender_reserva'),
     path('reservas/<int:reserva_id>/cancelar-admin/', views_reservas.cancelar_reserva_bibliotecario, name='cancelar_reserva_bibliotecario'),
 
-    # Panel del bibliotecario para entregar y recibir libros (CU-23, CU-25)
+    # Panel del bibliotecario para entregar, prestar en mostrador y recibir libros (CU-23, CU-24, CU-25, CU-27)
     path('gestion/', views.gestion_prestamos, name='gestion_prestamos'),
+    path('mostrador/', views.registrar_prestamo_mostrador, name='registrar_prestamo_mostrador'),
     path('entregar/<int:prestamo_id>/', views.entregar_prestamo, name='entregar_prestamo'),
     path('devolver/<int:prestamo_id>/', views.recibir_devolucion, name='recibir_devolucion'),
+    path('incidente/<int:prestamo_id>/', views.registrar_incidente_ejemplar, name='registrar_incidente_ejemplar'),
 ]

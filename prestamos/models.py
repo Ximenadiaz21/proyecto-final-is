@@ -49,6 +49,20 @@ class Prestamo(models.Model):
         db_table = 'prestamo'
         db_table_comment = 'Préstamo de un ejemplar a un usuario lector'
 
+    # Calcula los días naturales de retraso respecto a la fecha de vencimiento (RN-07)
+    def dias_retraso(self, fecha=None):
+        fecha = fecha or timezone.localdate()
+        if self.fecha_vencimiento is None:
+            return 0
+        return max((fecha - self.fecha_vencimiento).days, 0)
+
+    # Calcula el monto de la multa por retraso aplicando el tope máximo (RN-07)
+    def calcular_multa(self, politica, fecha=None):
+        if fecha is None and self.fecha_devolucion:
+            fecha = timezone.localtime(self.fecha_devolucion).date()
+        dias = self.dias_retraso(fecha)
+        return min(dias * politica.multa_por_dia, politica.multa_maxima)
+
 
 class Reserva(models.Model):
     ESTADOS = [
