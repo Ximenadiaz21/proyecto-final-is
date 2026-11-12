@@ -86,6 +86,8 @@
         .badge-SOLICITADO { background: #fff4de; color: #9a6a12; }
         .badge-ACTIVO { background: #e3f4ea; color: #1f7a45; }
         .badge-VENCIDO { background: #fde7e7; color: #b42323; }
+        .badge-CANCELADO { background: #e9ecef; color: #5b6670; }
+        .badge-EXPIRADO { background: #fdebd9; color: #a4540b; }
 
         .vacio {
             background: white; border: 1px dashed #cfd6dd; border-radius: 11px;
@@ -181,7 +183,19 @@
                             {% endif %}
                         </p>
                     </div>
-                    <span class="badge-estado badge-{{ p.estado }}">{{ p.estado }}</span>
+                    <div class="text-end">
+                        <span class="badge-estado badge-{{ p.estado }}">{{ p.estado }}</span>
+
+                        {% if p.estado == 'SOLICITADO' %}
+                            <form method="post" action="{% url 'cancelar_solicitud' p.id %}" class="mt-2"
+                                  onsubmit="return confirm('¿Cancelar esta solicitud?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger" style="font-size:12px;">
+                                    Cancelar solicitud
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         {% empty %}
