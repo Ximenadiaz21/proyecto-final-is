@@ -10,7 +10,12 @@ from django.contrib.auth.views import (
     PasswordResetCompleteView,
 )
 
-from cuentas.views import panel_usuario
+from cuentas.views import (
+    panel_usuario,
+    mis_notificaciones,
+    marcar_notificacion_leida,
+    marcar_todas_leidas,
+)
 
 
 urlpatterns = [
@@ -52,6 +57,11 @@ urlpatterns = [
 
     # Muestra el panel del usuario
     path('panel/', panel_usuario, name='panel'),
+
+    # Notificaciones del usuario (CU-15)
+    path('notificaciones/', mis_notificaciones, name='mis_notificaciones'),
+    path('notificaciones/<int:notificacion_id>/leer/', marcar_notificacion_leida, name='marcar_notificacion_leida'),
+    path('notificaciones/leer-todas/', marcar_todas_leidas, name='marcar_todas_leidas'),
 
     # Conecta el catálogo de libros
     path('catalogo/', include('catalogo.urls')),

@@ -328,6 +328,16 @@
 
             <div class="d-flex align-items-center gap-4">
 
+                <!-- Acceso rápido a notificaciones -->
+                <a href="{% url 'mis_notificaciones' %}" class="usuario-navbar text-decoration-none position-relative" title="Mis notificaciones">
+                    <i class="bi bi-bell fs-5"></i>
+                    {% if notificaciones_no_leidas %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 10px;">
+                            {{ notificaciones_no_leidas }}
+                        </span>
+                    {% endif %}
+                </a>
+
                 <!-- Muestra el usuario que inició sesión -->
                 <span class="usuario-navbar">
                     <i class="bi bi-person-circle me-2"></i>
@@ -611,6 +621,7 @@
                     </div>
                 </div>
 
+                <!-- Muestra las multas del estudiante -->
                 <div class="col-md-6">
                     <div class="tarjeta">
                         <div class="tarjeta-icono">
@@ -624,8 +635,38 @@
                             y el historial de pagos.
                         </p>
 
+                        <!-- Abre las multas del usuario -->
                         <a href="{% url 'mis_multas' %}" class="enlace-admin">
                             Ver mis multas
+                            <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Muestra las notificaciones del estudiante (CU-15) -->
+                <div class="col-md-6">
+                    <div class="tarjeta">
+                        <div class="tarjeta-icono">
+                            <i class="bi bi-bell"></i>
+                        </div>
+
+                        <h3>
+                            Notificaciones
+                            {% if notificaciones_no_leidas %}
+                                <span class="badge rounded-pill bg-danger ms-1" style="font-size: 11px;">
+                                    {{ notificaciones_no_leidas }} nueva{{ notificaciones_no_leidas|pluralize }}
+                                </span>
+                            {% endif %}
+                        </h3>
+
+                        <p>
+                            Revisa avisos de vencimientos, reservas
+                            disponibles y actividad de tu cuenta.
+                        </p>
+
+                        <!-- Abre las notificaciones del usuario -->
+                        <a href="{% url 'mis_notificaciones' %}" class="enlace-admin">
+                            Ver notificaciones
                             <i class="bi bi-arrow-right ms-1"></i>
                         </a>
                     </div>
@@ -701,6 +742,7 @@
                     </div>
                 </div>
 
+                <!-- Muestra las multas del profesor -->
                 <div class="col-md-6">
                     <div class="tarjeta">
                         <div class="tarjeta-icono">
@@ -714,8 +756,38 @@
                             y el historial de pagos.
                         </p>
 
+                        <!-- Abre las multas del usuario -->
                         <a href="{% url 'mis_multas' %}" class="enlace-admin">
                             Ver mis multas
+                            <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Muestra las notificaciones del profesor (CU-15) -->
+                <div class="col-md-6">
+                    <div class="tarjeta">
+                        <div class="tarjeta-icono">
+                            <i class="bi bi-bell"></i>
+                        </div>
+
+                        <h3>
+                            Notificaciones
+                            {% if notificaciones_no_leidas %}
+                                <span class="badge rounded-pill bg-danger ms-1" style="font-size: 11px;">
+                                    {{ notificaciones_no_leidas }} nueva{{ notificaciones_no_leidas|pluralize }}
+                                </span>
+                            {% endif %}
+                        </h3>
+
+                        <p>
+                            Revisa avisos de vencimientos, reservas
+                            disponibles y actividad de tu cuenta.
+                        </p>
+
+                        <!-- Abre las notificaciones del usuario -->
+                        <a href="{% url 'mis_notificaciones' %}" class="enlace-admin">
+                            Ver notificaciones
                             <i class="bi bi-arrow-right ms-1"></i>
                         </a>
                     </div>
