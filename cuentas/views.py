@@ -3,11 +3,6 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 
 
-# Muestra la página de requerimientos
-def inicio_requerimientos(request):
-    return render(request, 'requerimientos.html')
-
-
 # Muestra el panel del usuario
 @login_required
 def panel_usuario(request):
