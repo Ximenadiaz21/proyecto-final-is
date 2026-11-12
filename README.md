@@ -44,8 +44,8 @@ Proyecto final de Ingeniería de Software. Aplicación web hecha con **Django 5.
    Copia `.env.example` como `.env` y escribe tu usuario y contraseña de MySQL:
 
    ```
-   copy .env.example .env         # Windows
-   cp .env.example .env           # Linux / macOS
+   copy  .env   .env.example      # Windows
+   cp  .env    .env.example       # Linux / macOS
    ```
 
    Las credenciales no se suben al repositorio: `.env` está en `.gitignore`.
@@ -80,11 +80,32 @@ Proyecto final de Ingeniería de Software. Aplicación web hecha con **Django 5.
 
 | Rol | Usuario | Contraseña |
 |---|---|---|
-| Bibliotecario | `<USUARIO_BIBLIOTECARIO>` | `<CONTRASEÑA>` |
-| Profesor | `<USUARIO_PROFESOR>` | `<CONTRASEÑA>` |
-| Estudiante | `<USUARIO_ESTUDIANTE>` | `<CONTRASEÑA>` |
-
-> Sustituye los valores entre `< >` con los que genera el comando `usuarios`.
+| Bibliotecario | bibliotecario_demo | passbiblio |
+| Profesor | profesor01 | passbiblio |
+| Profesor | profesor02 | passbiblio |
+| Profesor | profesor03 | passbiblio |
+| Profesor | profesor04 | passbiblio |
+| Profesor | profesor05 | passbiblio |
+| Estudiante | alumno01 | passbiblio |
+| Estudiante | alumno02 | passbiblio |
+| Estudiante | alumno03 | passbiblio |
+| Estudiante | alumno04 | passbiblio |
+| Estudiante | alumno05 | passbiblio |
+| Estudiante | alumno06 | passbiblio |
+| Estudiante | alumno07 | passbiblio |
+| Estudiante | alumno08 | passbiblio |
+| Estudiante | alumno09 | passbiblio |
+| Estudiante | alumno10 | passbiblio |
+| Estudiante | alumno11 | passbiblio |
+| Estudiante | alumno12 | passbiblio |
+| Estudiante | alumno13 | passbiblio |
+| Estudiante | alumno14 | passbiblio |
+| Estudiante | alumno15 | passbiblio |
+| Estudiante | alumno16 | passbiblio |
+| Estudiante | alumno17 | passbiblio |
+| Estudiante | alumno18 | passbiblio |
+| Estudiante | alumno19 | passbiblio |
+| Estudiante | alumno20 | passbiblio |
 
 ## Comandos útiles
 
