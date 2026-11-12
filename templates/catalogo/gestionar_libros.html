@@ -376,10 +376,17 @@
                 </span>
             </div>
 
-            <a href="{% url 'nuevo_libro' %}" class="btn-buscar">
-                <i class="bi bi-plus-lg me-2"></i>
-                Nuevo libro
-            </a>
+            <!-- Botones para administrar catálogos auxiliares y registrar libros (CU-17, CU-19) -->
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{% url 'gestion_catalogos' %}" class="btn-buscar" style="background: #284b68;">
+                    <i class="bi bi-tags me-2"></i>
+                    Autores, editoriales y categorías
+                </a>
+                <a href="{% url 'nuevo_libro' %}" class="btn-buscar">
+                    <i class="bi bi-plus-lg me-2"></i>
+                    Nuevo libro
+                </a>
+            </div>
 
         </div>
 

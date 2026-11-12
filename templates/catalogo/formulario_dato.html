@@ -222,9 +222,15 @@
             <hr class="my-4">
 
             <div class="d-flex justify-content-end gap-3 flex-wrap">
-                <a href="{% url 'nuevo_libro' %}" class="btn-cancelar">
-                    Cancelar
-                </a>
+                {% if url_cancelar %}
+                    <a href="{% url url_cancelar %}" class="btn-cancelar">
+                        Cancelar
+                    </a>
+                {% else %}
+                    <a href="{% url 'nuevo_libro' %}" class="btn-cancelar">
+                        Cancelar
+                    </a>
+                {% endif %}
 
                 <button type="submit" class="btn-guardar">
                     <i class="bi bi-check-circle me-2"></i>

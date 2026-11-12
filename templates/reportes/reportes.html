@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{{ titulo }} | Biblioteca Escolar</title>
+
+    <!-- Carga Bootstrap y los iconos del sistema -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+    <style>
+        /* Variables de color institucionales */
+        :root {
+            --azul: #142b43;
+            --azul-secundario: #284b68;
+            --dorado: #c5a16b;
+            --fondo: #f5f6f8;
+            --gris: #6e7b88;
+        }
+
+        body {
+            min-height: 100vh;
+            background-color: var(--fondo);
+            font-family: "Segoe UI", Arial, sans-serif;
+            color: #273747;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Barra de navegación superior */
+        .navbar-biblioteca { background-color: var(--azul); padding: 12px 0; }
+
+        .marca {
+            display: flex; align-items: center; gap: 12px;
+            color: white; text-decoration: none;
+            font-size: 20px; font-weight: 600;
+        }
+        .marca:hover { color: white; }
+        .marca i { color: var(--dorado); font-size: 26px; }
+
+        .usuario-navbar { color: #dce3e9; font-size: 13px; }
+
+        .btn-salir {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.5);
+            border-radius: 7px; padding: 8px 16px;
+            color: white; font-size: 13px; transition: 0.2s;
+        }
+        .btn-salir:hover { background-color: white; color: var(--azul); }
+
+        /* Contenedor principal */
+        .contenido {
+            width: 100%; max-width: 1140px;
+            margin: 25px auto 20px; padding: 0 24px; flex: 1;
+        }
+
+        /* Encabezados */
+        .etiqueta {
+            color: #9c794b; font-size: 11px; font-weight: 700;
+            letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 7px;
+        }
+
+        h1.titulo {
+            color: var(--azul);
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 32px; font-weight: 400; margin-bottom: 8px;
+        }
+
+        .linea-dorada { width: 55px; height: 3px; margin: 13px 0 20px; background-color: var(--dorado); }
+
+        .titulo-seccion {
+            color: var(--azul);
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 22px; margin: 28px 0 14px;
+        }
+
+        /* Cajas y tarjetas de métricas */
+        .caja {
+            background: white; border: 1px solid #e4e8ed;
+            border-radius: 11px; padding: 18px 20px; margin-bottom: 18px;
+        }
+
+        .metrica {
+            background: white; border: 1px solid #e4e8ed;
+            border-radius: 11px; padding: 16px 18px; height: 100%;
+        }
+        .metrica .etiqueta-metrica {
+            color: var(--gris); font-size: 12px; margin-bottom: 4px;
+        }
+        .metrica .valor-metrica {
+            color: var(--azul); font-size: 24px; font-weight: 700;
+        }
+        .metrica .sub-metrica {
+            color: var(--gris); font-size: 11px; margin-top: 2px;
+        }
+
+        /* Tablas de reportes */
+        .tabla-wrap { overflow-x: auto; }
+        table.tabla { width: 100%; font-size: 13px; border-collapse: collapse; }
+        table.tabla th {
+            text-align: left; color: var(--gris); font-size: 11px; font-weight: 700;
+            letter-spacing: 0.6px; text-transform: uppercase;
+            padding: 10px 10px; border-bottom: 1px solid #e4e8ed; white-space: nowrap;
+        }
+        table.tabla td { padding: 10px 10px; border-bottom: 1px solid #f0f2f5; vertical-align: middle; }
+
+        /* Etiquetas de estado */
+        .badge-estado {
+            display: inline-block; padding: 3px 9px; border-radius: 5px;
+            font-size: 11px; font-weight: 600; background: #f1f3f5; color: #697784;
+        }
+        .badge-SOLICITADO { background: #e6eefb; color: #2a5aa8; }
+        .badge-ACTIVO { background: #e3f4ea; color: #1f7a45; }
+        .badge-VENCIDO { background: #fde8e8; color: #9b1c1c; }
+        .badge-DEVUELTO { background: #edf2f7; color: #4a5568; }
+        .badge-CANCELADO, .badge-EXPIRADO { background: #f7fafc; color: #718096; }
+        .badge-PERDIDO { background: #fde8e8; color: #9b1c1c; }
+        .badge-PENDIENTE { background: #fff4de; color: #9a6a12; }
+
+        /* Botones */
+        .btn-accion {
+            border: 0; border-radius: 7px; padding: 8px 16px;
+            font-size: 12px; font-weight: 600; color: white;
+            background-color: var(--azul); white-space: nowrap;
+        }
+        .btn-accion:hover { background-color: var(--azul-secundario); color: white; }
+
+        .btn-borde {
+            background: white; color: var(--azul); border: 1px solid #cfd6dd;
+            border-radius: 7px; padding: 8px 14px; font-size: 12px; font-weight: 600;
+            text-decoration: none; white-space: nowrap;
+        }
+        .btn-borde:hover { background: var(--azul); color: white; border-color: var(--azul); }
+
+        .vacio {
+            padding: 20px; text-align: center; color: var(--gris); font-size: 13px;
+        }
+
+        .enlace-admin {
+            color: var(--azul-secundario); text-decoration: none;
+            font-size: 12px; font-weight: 600;
+        }
+        .enlace-admin:hover { text-decoration: underline; }
+
+        .pie-pagina { text-align: center; color: #98a2ad; font-size: 11px; padding: 12px 15px; }
+
+        @media print {
+            .navbar-biblioteca, .no-print { display: none !important; }
+            body { background: white; }
+            .caja, .metrica { break-inside: avoid; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Barra de navegación superior -->
+    <nav class="navbar-biblioteca">
+        <div class="container d-flex justify-content-between align-items-center">
+            <a href="{% url 'panel' %}" class="marca">
+                <i class="bi bi-book-half"></i>
+                Biblioteca Escolar
+            </a>
+
+            <div class="d-flex align-items-center gap-4">
+                <span class="usuario-navbar">
+                    <i class="bi bi-person-circle me-2"></i>
+                    {{ usuario.username }}
+                </span>
+
+                <form method="post" action="{% url 'logout' %}" class="m-0">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-salir">Cerrar sesión</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <main class="contenido">
+
+        <!-- Encabezado principal y botón de impresión -->
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <div class="etiqueta">Administración de biblioteca</div>
+                <h1 class="titulo">Reportes operativos</h1>
+                <div class="linea-dorada"></div>
+            </div>
+
+            <div class="no-print mt-2">
+                <button type="button" onclick="window.print()" class="btn-borde">
+                    <i class="bi bi-printer me-1"></i> Imprimir / Guardar PDF
+                </button>
+            </div>
+        </div>
+
+        <div class="mb-3 no-print">
+            <a href="{% url 'panel' %}" class="enlace-admin">
+                <i class="bi bi-arrow-left me-1"></i> Volver al panel
+            </a>
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- REPORTE 1: Préstamos por periodo (RF-14)                        -->
+        <!-- =============================================================== -->
+        <h2 class="titulo-seccion">
+            1. Préstamos por periodo ({{ fecha_inicio_obj|date:"d/m/Y" }} al {{ fecha_fin_obj|date:"d/m/Y" }})
+        </h2>
+
+        <!-- Filtro de rango de fechas -->
+        <div class="caja no-print">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-sm-4">
+                    <label class="form-label small fw-bold">Fecha inicial</label>
+                    <input type="date" name="fecha_inicio" class="form-control form-control-sm" value="{{ fecha_inicio }}">
+                </div>
+                <div class="col-sm-4">
+                    <label class="form-label small fw-bold">Fecha final</label>
+                    <input type="date" name="fecha_fin" class="form-control form-control-sm" value="{{ fecha_fin }}">
+                </div>
+                <div class="col-sm-4 d-flex gap-2">
+                    <button type="submit" class="btn-accion w-100">
+                        <i class="bi bi-funnel me-1"></i> Consultar periodo
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Métricas del periodo -->
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <div class="metrica">
+                    <div class="etiqueta-metrica">Total de préstamos en el periodo</div>
+                    <div class="valor-metrica">{{ total_prestamos_periodo }}</div>
+                    <div class="sub-metrica">
+                        Estudiantes: {{ prestamos_estudiantes }} · Profesores: {{ prestamos_profesores }}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="metrica">
+                    <div class="etiqueta-metrica mb-2">Desglose por estado en el periodo</div>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for codigo, etiqueta, cantidad in resumen_periodo %}
+                            <span class="badge-estado badge-{{ codigo }}">
+                                {{ etiqueta }}: <strong>{{ cantidad }}</strong>
+                            </span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de préstamos del periodo -->
+        <div class="caja">
+            <div class="tabla-wrap">
+                <table class="tabla">
+                    <thead>
+                        <tr>
+                            <th>Folio</th>
+                            <th>Fecha solicitud</th>
+                            <th>Usuario</th>
+                            <th>Rol</th>
+                            <th>Libro y ejemplar</th>
+                            <th>Vencimiento</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in prestamos_periodo %}
+                            <tr>
+                                <td>#{{ p.id }}</td>
+                                <td>{{ p.fecha_solicitud|date:"d/m/Y H:i" }}</td>
+                                <td><strong>{{ p.usuario.username }}</strong></td>
+                                <td>{{ p.usuario.get_tipo_usuario_display }}</td>
+                                <td>
+                                    {{ p.ejemplar.libro.titulo }}
+                                    <div class="text-muted small"><code>{{ p.ejemplar.codigo_inventario }}</code></div>
+                                </td>
+                                <td>{{ p.fecha_vencimiento|date:"d/m/Y"|default:"—" }}</td>
+                                <td><span class="badge-estado badge-{{ p.estado }}">{{ p.estado }}</span></td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="7" class="vacio">No se registraron préstamos en el periodo seleccionado.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- REPORTE 2: Libros más solicitados (RF-14)                       -->
+        <!-- =============================================================== -->
+        <h2 class="titulo-seccion">2. Libros más solicitados</h2>
+
+        <div class="caja">
+            <div class="tabla-wrap">
+                <table class="tabla">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Título</th>
+                            <th>ISBN</th>
+                            <th>Categoría</th>
+                            <th>Editorial</th>
+                            <th class="text-center">Préstamos</th>
+                            <th class="text-center">Reservas</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for libro in libros_mas_solicitados %}
+                            <tr>
+                                <td><strong>{{ forloop.counter }}</strong></td>
+                                <td><strong>{{ libro.titulo }}</strong></td>
+                                <td><code>{{ libro.isbn }}</code></td>
+                                <td>{{ libro.categoria.nombre }}</td>
+                                <td>{{ libro.editorial.nombre }}</td>
+                                <td class="text-center">
+                                    <span class="badge-estado badge-SOLICITADO">{{ libro.total_prestamos }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge-estado">{{ libro.total_reservas }}</span>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="7" class="vacio">Aún no hay préstamos ni reservas registrados para calcular estadísticas.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- REPORTE 3: Préstamos vencidos (RF-14)                           -->
+        <!-- =============================================================== -->
+        <h2 class="titulo-seccion">3. Préstamos vencidos actualmente ({{ prestamos_vencidos|length }})</h2>
+
+        <div class="caja">
+            <div class="tabla-wrap">
+                <table class="tabla">
+                    <thead>
+                        <tr>
+                            <th>Folio</th>
+                            <th>Usuario lector</th>
+                            <th>Correo</th>
+                            <th>Libro</th>
+                            <th>Ejemplar</th>
+                            <th>Fecha vencimiento</th>
+                            <th>Días de retraso</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in prestamos_vencidos %}
+                            <tr>
+                                <td>#{{ p.id }}</td>
+                                <td>
+                                    <strong>{{ p.usuario.get_full_name|default:p.usuario.username }}</strong>
+                                    <div class="text-muted small">{{ p.usuario.username }} ({{ p.usuario.get_tipo_usuario_display }})</div>
+                                </td>
+                                <td>{{ p.usuario.email }}</td>
+                                <td>{{ p.ejemplar.libro.titulo }}</td>
+                                <td><code>{{ p.ejemplar.codigo_inventario }}</code></td>
+                                <td>{{ p.fecha_vencimiento|date:"d/m/Y" }}</td>
+                                <td>
+                                    <span class="badge-estado badge-VENCIDO">
+                                        {{ p.retraso_actual }} día{{ p.retraso_actual|pluralize }}
+                                    </span>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="7" class="vacio">No hay préstamos vencidos en este momento.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- REPORTE 4: Multas cobradas y pendientes (RF-14)                 -->
+        <!-- =============================================================== -->
+        <h2 class="titulo-seccion">4. Multas cobradas y pendientes</h2>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <div class="metrica">
+                    <div class="etiqueta-metrica">Total cobrado en caja</div>
+                    <div class="valor-metrica" style="color: #1f7a45;">${{ total_cobrado|floatformat:2 }} MXN</div>
+                    <div class="sub-metrica">{{ multas_pagadas_count }} multa(s) liquidada(s) en total</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="metrica">
+                    <div class="etiqueta-metrica">Saldo pendiente por cobrar</div>
+                    <div class="valor-metrica" style="color: #9a6a12;">${{ total_pendiente_cobro|floatformat:2 }} MXN</div>
+                    <div class="sub-metrica">{{ multas_pendientes|length }} multa(s) en estado PENDIENTE</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="metrica">
+                    <div class="etiqueta-metrica">Total condonado</div>
+                    <div class="valor-metrica">${{ total_condonado|floatformat:2 }} MXN</div>
+                    <div class="sub-metrica">{{ multas_condonadas_count }} multa(s) condonada(s)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Desglose de multas pendientes y pagos recientes -->
+        <div class="row g-3">
+            <div class="col-lg-6">
+                <div class="caja h-100">
+                    <h3 class="h6 fw-bold mb-3" style="color: var(--azul);">Multas pendientes de cobro</h3>
+                    <div class="tabla-wrap">
+                        <table class="tabla">
+                            <thead>
+                                <tr>
+                                    <th>Usuario</th>
+                                    <th>Motivo</th>
+                                    <th>Libro</th>
+                                    <th class="text-end">Saldo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for m in multas_pendientes %}
+                                    <tr>
+                                        <td><strong>{{ m.usuario.username }}</strong></td>
+                                        <td>{{ m.get_motivo_display }}</td>
+                                        <td>{{ m.prestamo.ejemplar.libro.titulo }}</td>
+                                        <td class="text-end"><strong>${{ m.saldo|floatformat:2 }}</strong></td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="4" class="vacio">No hay multas pendientes de pago.</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="caja h-100">
+                    <h3 class="h6 fw-bold mb-3" style="color: var(--azul);">Últimos pagos cobrados</h3>
+                    <div class="tabla-wrap">
+                        <table class="tabla">
+                            <thead>
+                                <tr>
+                                    <th>Recibo</th>
+                                    <th>Usuario</th>
+                                    <th>Método</th>
+                                    <th>Fecha</th>
+                                    <th class="text-end">Monto</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pago in ultimos_pagos %}
+                                    <tr>
+                                        <td><code>{{ pago.folio_recibo }}</code></td>
+                                        <td>{{ pago.multa.usuario.username }}</td>
+                                        <td>{{ pago.get_metodo_display }}</td>
+                                        <td>{{ pago.fecha_pago|date:"d/m/Y H:i" }}</td>
+                                        <td class="text-end"><strong>${{ pago.monto|floatformat:2 }}</strong></td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="vacio">Aún no se han registrado pagos de multas.</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Pie de página institucional -->
+    <footer class="pie-pagina mt-4">
+        © 2026 Biblioteca Escolar · Sistema de Gestión
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

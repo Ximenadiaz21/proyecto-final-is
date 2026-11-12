@@ -120,10 +120,10 @@
             Administración de biblioteca
         </div>
 
-        <h1>Registrar nuevo autor</h1>
+        <h1>{{ titulo_pagina|default:"Registrar nuevo autor" }}</h1>
 
         <p class="descripcion">
-            Agrega un autor para asociarlo a los libros de la biblioteca.
+            {{ descripcion_pagina|default:"Agrega un autor para asociarlo a los libros de la biblioteca." }}
         </p>
 
         <div class="linea"></div>
@@ -167,9 +167,15 @@
             <hr class="my-4">
 
             <div class="d-flex justify-content-end gap-3">
-                <a href="{% url 'nuevo_libro' %}" class="btn-cancelar">
-                    Cancelar
-                </a>
+                {% if url_cancelar %}
+                    <a href="{% url url_cancelar %}" class="btn-cancelar">
+                        Cancelar
+                    </a>
+                {% else %}
+                    <a href="{% url 'nuevo_libro' %}" class="btn-cancelar">
+                        Cancelar
+                    </a>
+                {% endif %}
 
                 <button type="submit" class="btn-guardar">
                     <i class="bi bi-check-circle me-2"></i>

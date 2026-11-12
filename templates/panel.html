@@ -441,6 +441,12 @@
                             Gestionar ejemplares
                             <i class="bi bi-arrow-right ms-1"></i>
                         </a>
+                        <br>
+                        <!-- Administra autores, editoriales y categorías (CU-19) -->
+                        <a href="{% url 'gestion_catalogos' %}" class="enlace-admin">
+                            Autores, editoriales y categorías
+                            <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
                     </div>
                 </div>
 
@@ -571,7 +577,7 @@
                     </div>
                 </div>
 
-                <!-- Muestra la sección de reportes -->
+                <!-- Muestra la sección de reportes (CU-32, RF-14) -->
                 <div class="col-md-6 col-lg-4">
                     <div class="tarjeta">
                         <div class="tarjeta-icono">
@@ -585,7 +591,10 @@
                             libros y multas de la biblioteca.
                         </p>
 
-                        <span class="estado">En desarrollo</span>
+                        <a href="{% url 'reportes' %}" class="enlace-admin">
+                            Ver reportes
+                            <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
                     </div>
                 </div>
 

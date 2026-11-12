@@ -180,7 +180,7 @@ class AutorForm(forms.ModelForm):
             }),
         }
 
-    # Evita registrar dos veces al mismo autor
+    # Evita registrar dos veces al mismo autor (excluyendo el propio al editar)
     def clean(self):
         datos = super().clean()
 
@@ -188,12 +188,14 @@ class AutorForm(forms.ModelForm):
         apellidos = datos.get('apellidos')
 
         if nombre and apellidos:
-            existe = Autor.objects.filter(
+            consulta = Autor.objects.filter(
                 nombre__iexact=nombre.strip(),
                 apellidos__iexact=apellidos.strip()
-            ).exists()
+            )
+            if self.instance and self.instance.pk:
+                consulta = consulta.exclude(pk=self.instance.pk)
 
-            if existe:
+            if consulta.exists():
                 raise forms.ValidationError(
                     'Este autor ya está registrado en la biblioteca.'
                 )
@@ -225,11 +227,15 @@ class EditorialForm(forms.ModelForm):
             }),
         }
 
-    # Evita registrar dos editoriales con el mismo nombre
+    # Evita registrar dos editoriales con el mismo nombre (excluyendo la propia al editar)
     def clean_nombre(self):
         nombre = self.cleaned_data['nombre'].strip()
 
-        if Editorial.objects.filter(nombre__iexact=nombre).exists():
+        consulta = Editorial.objects.filter(nombre__iexact=nombre)
+        if self.instance and self.instance.pk:
+            consulta = consulta.exclude(pk=self.instance.pk)
+
+        if consulta.exists():
             raise forms.ValidationError(
                 'Esta editorial ya está registrada.'
             )
@@ -262,11 +268,15 @@ class CategoriaForm(forms.ModelForm):
             }),
         }
 
-    # Evita registrar dos categorías con el mismo nombre
+    # Evita registrar dos categorías con el mismo nombre (excluyendo la propia al editar)
     def clean_nombre(self):
         nombre = self.cleaned_data['nombre'].strip()
 
-        if Categoria.objects.filter(nombre__iexact=nombre).exists():
+        consulta = Categoria.objects.filter(nombre__iexact=nombre)
+        if self.instance and self.instance.pk:
+            consulta = consulta.exclude(pk=self.instance.pk)
+
+        if consulta.exists():
             raise forms.ValidationError(
                 'Esta categoría ya está registrada.'
             )
