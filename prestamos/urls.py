@@ -1,10 +1,14 @@
 from django.urls import path
 from . import views
 from . import views_cancelacion
+from . import views_politicas
 from . import views_renovacion
 from . import views_reservas
 
 urlpatterns = [
+    # Configuración de políticas de préstamo por tipo de usuario (CU-31, RF-13)
+    path('politicas/', views_politicas.configurar_politicas, name='configurar_politicas'),
+
     # Solicita el préstamo de un libro (CU-06)
     path('solicitar/<int:libro_id>/', views.solicitar_prestamo, name='solicitar_prestamo'),
 

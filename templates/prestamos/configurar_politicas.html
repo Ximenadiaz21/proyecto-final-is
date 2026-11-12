@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{{ titulo }} | Biblioteca Escolar</title>
+
+    <!-- Carga Bootstrap y los iconos del sistema -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+    <style>
+        /* Variables de color institucionales */
+        :root {
+            --azul: #142b43;
+            --azul-secundario: #284b68;
+            --dorado: #c5a16b;
+            --fondo: #f5f6f8;
+            --gris: #6e7b88;
+        }
+
+        /* Estructura general de la página */
+        body {
+            min-height: 100vh;
+            background-color: var(--fondo);
+            font-family: "Segoe UI", Arial, sans-serif;
+            color: #273747;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Barra de navegación superior */
+        .navbar-biblioteca { background-color: var(--azul); padding: 12px 0; }
+
+        .marca {
+            display: flex; align-items: center; gap: 12px;
+            color: white; text-decoration: none;
+            font-size: 20px; font-weight: 600;
+        }
+        .marca:hover { color: white; }
+        .marca i { color: var(--dorado); font-size: 26px; }
+
+        .usuario-navbar { color: #dce3e9; font-size: 13px; }
+
+        .btn-salir {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.5);
+            border-radius: 7px; padding: 8px 16px;
+            color: white; font-size: 13px; transition: 0.2s;
+        }
+        .btn-salir:hover { background-color: white; color: var(--azul); }
+
+        /* Contenedor principal centrado */
+        .contenido {
+            width: 100%; max-width: 1120px;
+            margin: 25px auto 10px; padding: 0 24px; flex: 1;
+        }
+
+        /* Encabezados */
+        .etiqueta {
+            color: #9c794b; font-size: 11px; font-weight: 700;
+            letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 7px;
+        }
+
+        h1.titulo {
+            color: var(--azul);
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 32px; font-weight: 400; margin-bottom: 8px;
+        }
+
+        .linea-dorada { width: 55px; height: 3px; margin: 13px 0 20px; background-color: var(--dorado); }
+
+        /* Tarjeta de cada política de préstamo */
+        .tarjeta-politica {
+            background: white;
+            border: 1px solid #e4e8ed;
+            border-radius: 11px;
+            padding: 22px 24px;
+            height: 100%;
+        }
+
+        .encabezado-politica {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eef0f3;
+            padding-bottom: 14px;
+            margin-bottom: 18px;
+        }
+
+        .encabezado-politica h2 {
+            color: var(--azul);
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 22px;
+            margin: 0;
+        }
+
+        .badge-rol {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-ESTUDIANTE { background: #e6eefb; color: #2a5aa8; }
+        .badge-PROFESOR { background: #f3ecfa; color: #6b3fa0; }
+
+        /* Estilos para los campos del formulario */
+        .form-label {
+            color: var(--azul);
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .regla-id {
+            color: #9c794b;
+            font-size: 11px;
+            font-weight: 700;
+            margin-right: 4px;
+        }
+        .form-control {
+            font-size: 13px;
+            border-radius: 7px;
+            border: 1px solid #dce2e8;
+        }
+        .form-control:focus {
+            border-color: var(--azul-secundario);
+            box-shadow: 0 0 0 3px rgba(40,75,104,0.1);
+        }
+        .ayuda {
+            color: var(--gris);
+            font-size: 11px;
+            margin-top: 3px;
+        }
+
+        .actualizado {
+            color: var(--gris);
+            font-size: 12px;
+        }
+
+        /* Botón de guardado */
+        .btn-guardar {
+            border: 0;
+            border-radius: 7px;
+            padding: 9px 18px;
+            font-size: 13px;
+            font-weight: 600;
+            color: white;
+            background-color: var(--azul);
+            transition: 0.2s;
+        }
+        .btn-guardar:hover {
+            background-color: var(--azul-secundario);
+            color: white;
+        }
+
+        .enlace-admin {
+            color: var(--azul-secundario);
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .enlace-admin:hover { text-decoration: underline; }
+
+        .pie-pagina { text-align: center; color: #98a2ad; font-size: 11px; padding: 12px 15px; }
+
+        @media (max-width: 700px) {
+            .usuario-navbar { display: none; }
+            .contenido { padding: 0 18px; }
+            h1.titulo { font-size: 27px; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Barra de navegación superior -->
+    <nav class="navbar-biblioteca">
+        <div class="container d-flex justify-content-between align-items-center">
+            <a href="{% url 'panel' %}" class="marca">
+                <i class="bi bi-book-half"></i>
+                Biblioteca Escolar
+            </a>
+
+            <div class="d-flex align-items-center gap-4">
+                <span class="usuario-navbar">
+                    <i class="bi bi-person-circle me-2"></i>
+                    {{ usuario.username }}
+                </span>
+
+                <!-- Cierra la sesión activa -->
+                <form method="post" action="{% url 'logout' %}" class="m-0">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-salir">Cerrar sesión</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <main class="contenido">
+
+        <!-- Muestra alertas y mensajes de confirmación -->
+        {% if messages %}
+            {% for mensaje in messages %}
+                <div class="alert alert-{% if mensaje.tags == 'error' %}danger{% else %}{{ mensaje.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                    {{ mensaje }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Encabezado principal -->
+        <div class="etiqueta">Administración de biblioteca</div>
+        <h1 class="titulo">Configurar políticas de préstamo</h1>
+        <div class="linea-dorada"></div>
+
+        <!-- Enlace para volver al panel del bibliotecario -->
+        <div class="mb-4">
+            <a href="{% url 'panel' %}" class="enlace-admin">
+                <i class="bi bi-arrow-left me-1"></i> Volver al panel
+            </a>
+        </div>
+
+        <!-- Tarjetas de configuración por cada tipo de usuario lector (CU-31, RN-01 a RN-06) -->
+        <div class="row g-4 mb-4">
+            {% for p in politicas %}
+                <div class="col-lg-6">
+                    <div class="tarjeta-politica">
+                        <div class="encabezado-politica">
+                            <h2>
+                                {% if p.tipo_usuario == 'ESTUDIANTE' %}
+                                    <i class="bi bi-mortarboard me-2"></i>Política para Estudiantes
+                                {% else %}
+                                    <i class="bi bi-person-workspace me-2"></i>Política para Profesores
+                                {% endif %}
+                            </h2>
+                            <span class="badge-rol badge-{{ p.tipo_usuario }}">
+                                {{ p.get_tipo_usuario_display|upper }}
+                            </span>
+                        </div>
+
+                        <!-- Formulario de edición de parámetros de la política -->
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="tipo_usuario" value="{{ p.tipo_usuario }}">
+
+                            <div class="row g-3">
+                                <!-- RN-01: Días naturales de préstamo -->
+                                <div class="col-sm-6">
+                                    <label class="form-label">
+                                        <span class="regla-id">RN-01</span>Días de préstamo
+                                    </label>
+                                    <input
+                                        type="number"
+                                        name="dias_prestamo"
+                                        class="form-control"
+                                        min="1"
+                                        max="365"
+                                        value="{{ p.dias_prestamo }}"
+                                        required
+                                    >
+                                    <div class="ayuda">Días naturales por préstamo o renovación.</div>
+                                </div>
+
+                                <!-- RN-02: Máximo de libros prestados simultáneamente -->
+                                <div class="col-sm-6">
+                                    <label class="form-label">
+                                        <span class="regla-id">RN-02</span>Máximo de libros simultáneos
+                                    </label>
+                                    <input
+                                        type="number"
+                                        name="max_libros"
+                                        class="form-control"
+                                        min="1"
+                                        max="50"
+                                        value="{{ p.max_libros }}"
+                                        required
+                                    >
+                                    <div class="ayuda">Préstamos activos o solicitados a la vez.</div>
+                                </div>
+
+                                <!-- RN-03: Renovaciones permitidas por préstamo -->
+                                <div class="col-sm-6">
+                                    <label class="form-label">
+                                        <span class="regla-id">RN-03</span>Renovaciones permitidas
+                                    </label>
+                                    <input
+                                        type="number"
+                                        name="max_renovaciones"
+                                        class="form-control"
+                                        min="0"
+                                        max="20"
+                                        value="{{ p.max_renovaciones }}"
+                                        required
+                                    >
+                                    <div class="ayuda">Número máximo de veces que se puede renovar.</div>
+                                </div>
+
+                                <!-- RN-06: Horas para recoger un libro solicitado o reservado -->
+                                <div class="col-sm-6">
+                                    <label class="form-label">
+                                        <span class="regla-id">RN-06</span>Horas para recoger libro
+                                    </label>
+                                    <input
+                                        type="number"
+                                        name="horas_para_recoger"
+                                        class="form-control"
+                                        min="1"
+                                        max="720"
+                                        value="{{ p.horas_para_recoger }}"
+                                        required
+                                    >
+                                    <div class="ayuda">Plazo antes de que expire la solicitud o reserva.</div>
+                                </div>
+
+                                <!-- RN-04: Multa por día de retraso -->
+                                <div class="col-sm-6">
+                                    <label class="form-label">
+                                        <span class="regla-id">RN-04</span>Multa por día de retraso ($ MXN)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        name="multa_por_dia"
+                                        class="form-control"
+                                        value="{{ p.multa_por_dia|stringformat:'.2f' }}"
+                                        required
+                                    >
+                                    <div class="ayuda">Cargo diario por cada ejemplar vencido.</div>
+                                </div>
+
+                                <!-- RN-05: Multa máxima por préstamo -->
+                                <div class="col-sm-6">
+                                    <label class="form-label">
+                                        <span class="regla-id">RN-05</span>Multa máxima por préstamo ($ MXN)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        name="multa_maxima"
+                                        class="form-control"
+                                        value="{{ p.multa_maxima|stringformat:'.2f' }}"
+                                        required
+                                    >
+                                    <div class="ayuda">Tope máximo aplicable en RN-07.</div>
+                                </div>
+                            </div>
+
+                            <!-- Fecha de última modificación y botón para guardar -->
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-4 pt-3 border-top">
+                                <span class="actualizado">
+                                    <i class="bi bi-clock-history me-1"></i>
+                                    Última actualización: {{ p.actualizado_en|date:"d/m/Y H:i" }}
+                                </span>
+
+                                <button type="submit" class="btn-guardar">
+                                    <i class="bi bi-check2-circle me-1"></i>
+                                    Guardar política de {{ p.get_tipo_usuario_display|lower }}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+    </main>
+
+    <!-- Pie de página institucional -->
+    <footer class="pie-pagina">
+        © 2026 Biblioteca Escolar · Sistema de Gestión
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
