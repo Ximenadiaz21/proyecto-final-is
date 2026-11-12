@@ -88,6 +88,8 @@
         .badge-VENCIDO { background: #fde7e7; color: #b42323; }
         .badge-CANCELADO { background: #e9ecef; color: #5b6670; }
         .badge-EXPIRADO { background: #fdebd9; color: #a4540b; }
+        .badge-PENDIENTE { background: #e6eefb; color: #2a5aa8; }
+        .badge-DISPONIBLE { background: #e3f4ea; color: #1f7a45; }
 
         .vacio {
             background: white; border: 1px dashed #cfd6dd; border-radius: 11px;
@@ -206,6 +208,45 @@
             </div>
         {% empty %}
             <div class="vacio">No tienes préstamos en curso.</div>
+        {% endfor %}
+
+        <!-- Muestra las reservas activas del usuario (CU-11, CU-12) -->
+        <h2 class="titulo-seccion">Mis reservas</h2>
+
+        {% for r in reservas_activas %}
+            <div class="prestamo">
+                <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                    <div>
+                        <h3>{{ r.libro.titulo }}</h3>
+                        <p class="detalle">
+                            Reservado el: {{ r.fecha_reserva|date:"d/m/Y H:i" }}
+
+                            {% if r.estado == 'DISPONIBLE' and r.ejemplar_asignado %}
+                                <br>Ejemplar apartado: <strong>{{ r.ejemplar_asignado.codigo_inventario }}</strong>
+                                {% if r.fecha_expiracion %}
+                                    <br>Recógelo en biblioteca antes de: <strong>{{ r.fecha_expiracion|date:"d/m/Y H:i" }}</strong>
+                                {% endif %}
+                            {% else %}
+                                <br>En cola de espera (te avisaremos cuando se devuelva un ejemplar).
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge-estado badge-{{ r.estado }}">{{ r.estado }}</span>
+
+                        <!-- Permite cancelar la reserva (CU-12) -->
+                        <form method="post" action="{% url 'cancelar_reserva' r.id %}" class="mt-2"
+                              onsubmit="return confirm('¿Cancelar esta reserva?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger" style="font-size:12px;">
+                                Cancelar reserva
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="vacio">No tienes reservas activas.</div>
         {% endfor %}
 
         <!-- Muestra el historial -->

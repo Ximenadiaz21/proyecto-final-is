@@ -643,7 +643,7 @@
                                     Ver detalles
                                 </a>
 
-                                <!-- Solo los lectores pueden solicitar préstamos -->
+                                <!-- Solo los lectores pueden solicitar préstamos o reservar libros -->
                                 {% if request.user.tipo_usuario == 'ESTUDIANTE' or request.user.tipo_usuario == 'PROFESOR' %}
 
                                     {% if libro.disponibles > 0 %}
@@ -655,11 +655,14 @@
                                             </button>
                                         </form>
                                     {% else %}
-                                        <button type="button"
-                                                class="btn-prestamo"
-                                                disabled>
-                                            No disponible
-                                        </button>
+                                        <!-- Si no hay ejemplares disponibles, permite reservar (CU-11) -->
+                                        <form method="post" action="{% url 'reservar_libro' libro.id %}" class="m-0">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn-prestamo">
+                                                <i class="bi bi-calendar-plus"></i>
+                                                Reservar libro
+                                            </button>
+                                        </form>
                                     {% endif %}
 
                                 {% endif %}

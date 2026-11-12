@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from catalogo.models import Libro, Ejemplar
 from cuentas.models import Notificacion
-from .models import PoliticaPrestamo, Prestamo
+from .models import PoliticaPrestamo, Prestamo, Reserva
 from .reglas import motivo_inelegible, liberar_o_asignar_ejemplar
 from multas.models import Multa
 
@@ -109,7 +109,7 @@ def solicitar_prestamo(request, libro_id):
     return redirect('mis_prestamos')
 
 
-# Muestra los préstamos del usuario que inició sesión
+# Muestra los préstamos y reservas del usuario que inició sesión (CU-09, CU-13)
 @login_required
 def mis_prestamos(request):
     usuario = request.user
@@ -128,11 +128,20 @@ def mis_prestamos(request):
     en_curso = [p for p in prestamos if p.estado in estados_en_curso]
     historial = [p for p in prestamos if p.estado not in estados_en_curso]
 
+    # Obtiene las reservas activas del usuario (PENDIENTE o DISPONIBLE para recoger)
+    reservas_activas = Reserva.objects.filter(
+        usuario=usuario,
+        estado__in=['PENDIENTE', 'DISPONIBLE']
+    ).select_related(
+        'libro', 'ejemplar_asignado'
+    ).order_by('fecha_reserva')
+
     contexto = {
         'usuario': usuario,
-        'titulo': 'Mis préstamos',
+        'titulo': 'Mis préstamos y reservas',
         'en_curso': en_curso,
         'historial': historial,
+        'reservas_activas': reservas_activas,
     }
 
     return render(request, 'prestamos/mis_prestamos.html', contexto)

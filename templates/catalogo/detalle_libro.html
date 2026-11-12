@@ -444,7 +444,7 @@
                         </div>
                     {% endif %}
 
-                    <!-- Solicitar préstamo (solo lectores y con ejemplares disponibles) -->
+                    <!-- Solicitar préstamo o reservar libro (CU-06, CU-11) -->
                     {% if user.tipo_usuario == 'ESTUDIANTE' or user.tipo_usuario == 'PROFESOR' %}
                         {% if libro.disponibles > 0 %}
                             <form method="post"
@@ -454,6 +454,17 @@
                                 <button type="submit" class="btn-solicitar">
                                     <i class="bi bi-bookmark-plus"></i>
                                     Solicitar préstamo
+                                </button>
+                            </form>
+                        {% else %}
+                            <!-- Flujo alternativo 2a de CU-06: si no hay disponibles, permite reservar -->
+                            <form method="post"
+                                  action="{% url 'reservar_libro' libro.id %}"
+                                  class="mt-3">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-solicitar">
+                                    <i class="bi bi-calendar-plus"></i>
+                                    Reservar libro
                                 </button>
                             </form>
                         {% endif %}

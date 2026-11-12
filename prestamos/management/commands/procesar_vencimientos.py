@@ -7,6 +7,7 @@ from django.utils import timezone
 from catalogo.models import Ejemplar
 from cuentas.models import Notificacion
 from prestamos.models import Prestamo, Reserva
+from prestamos.reglas import liberar_o_asignar_ejemplar
 
 
 class Command(BaseCommand):
@@ -57,14 +58,13 @@ class Command(BaseCommand):
             usuario=usuario, tipo=tipo, mensaje=mensaje, leida=0, fecha=self.ahora
         )
 
-    # Libera un ejemplar apartado (RESERVADO -> DISPONIBLE)
+    # Libera un ejemplar apartado o lo asigna a la siguiente reserva en cola FIFO (RN-12)
     def _liberar_ejemplar(self, ejemplar_id):
         if not ejemplar_id:
             return
-        ejemplar = Ejemplar.objects.select_for_update().get(pk=ejemplar_id)
+        ejemplar = Ejemplar.objects.select_for_update().select_related('libro').get(pk=ejemplar_id)
         if ejemplar.estado == 'RESERVADO':
-            ejemplar.estado = 'DISPONIBLE'
-            ejemplar.save(update_fields=['estado'])
+            liberar_o_asignar_ejemplar(ejemplar, self.ahora)
 
     # CU-34: ACTIVO con la fecha de vencimiento pasada -> VENCIDO
     def _marcar_vencidos(self):
