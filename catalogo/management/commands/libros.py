@@ -1,7 +1,8 @@
-
 import json
+import random
 import time
 import unicodedata
+from decimal import Decimal
 from difflib import SequenceMatcher
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -89,6 +90,11 @@ LIBROS = {
         ('Start with Why', 'Simon Sinek'),
     ],
 }
+
+
+def costo_aleatorio():
+    # Costo de reposición de demostración: entre $150 y $900 MXN (RN-13)
+    return Decimal(random.randrange(150, 901, 10))
 
 
 def normalizar(texto):
@@ -208,6 +214,10 @@ class Command(BaseCommand):
                 ).first()
 
                 if existente:
+                    # Corrige libros cargados antes con costo de reposición 0
+                    if existente.costo_reposicion == 0:
+                        existente.costo_reposicion = costo_aleatorio()
+                        existente.save(update_fields=['costo_reposicion'])
                     self.crear_ejemplares(existente)
                     registrados += 1
                     continue
@@ -254,8 +264,8 @@ class Command(BaseCommand):
                             f'Obra de {nombre_autor}. '
                             'Registro bibliográfico de demostración.'
                         ),
-                        costo_reposicion=0,
-                        activo=1,
+                        costo_reposicion=costo_aleatorio(),
+                        activo=True,
                     )
 
                     LibroAutor.objects.get_or_create(
