@@ -307,3 +307,52 @@ class ReglasNegocioPrestamosTests(TestCase):
         self.assertFalse(
             Prestamo.objects.filter(ejemplar=self.ejemplares[0]).exists()
         )
+
+    # CU-34, CU-35 y CU-36: Verifica el comando programado procesar_vencimientos (RF-17)
+    def test_cu34_cu35_cu36_comando_procesar_vencimientos(self):
+        from django.core.management import call_command
+
+        ahora = timezone.now()
+        hoy = timezone.localdate()
+
+        # 1. Préstamo activo cuya fecha de vencimiento ya pasó -> debe pasar a VENCIDO (CU-34)
+        prestamo_vencido = Prestamo.objects.create(
+            usuario=self.estudiante,
+            ejemplar=self.ejemplares[0],
+            estado='ACTIVO',
+            fecha_prestamo=ahora - timedelta(days=8),
+            fecha_vencimiento=hoy - timedelta(days=1),
+        )
+
+        # 2. Solicitud que no se recogió en 48h -> debe pasar a EXPIRADO y liberar ejemplar (CU-35)
+        self.ejemplares[1].estado = 'RESERVADO'
+        self.ejemplares[1].save()
+        solicitud_expirada = Prestamo.objects.create(
+            usuario=self.estudiante_dos,
+            ejemplar=self.ejemplares[1],
+            estado='SOLICITADO',
+            fecha_solicitud=ahora - timedelta(hours=50),
+            fecha_limite_recoger=ahora - timedelta(hours=2),
+        )
+
+        # 3. Préstamo que vence mañana -> debe generar recordatorio VENCE_PRONTO (CU-36)
+        Prestamo.objects.create(
+            usuario=self.profesor,
+            ejemplar=self.ejemplares[2],
+            estado='ACTIVO',
+            fecha_prestamo=ahora - timedelta(days=29),
+            fecha_vencimiento=hoy + timedelta(days=1),
+        )
+
+        call_command('procesar_vencimientos')
+
+        prestamo_vencido.refresh_from_db()
+        solicitud_expirada.refresh_from_db()
+        self.ejemplares[1].refresh_from_db()
+
+        self.assertEqual(prestamo_vencido.estado, 'VENCIDO')
+        self.assertEqual(solicitud_expirada.estado, 'EXPIRADO')
+        self.assertEqual(self.ejemplares[1].estado, 'DISPONIBLE')
+        self.assertTrue(
+            Notificacion.objects.filter(usuario=self.profesor, tipo='VENCE_PRONTO').exists()
+        )

@@ -447,15 +447,66 @@
                     <!-- Solicitar préstamo o reservar libro (CU-06, CU-11) -->
                     {% if user.tipo_usuario == 'ESTUDIANTE' or user.tipo_usuario == 'PROFESOR' %}
                         {% if libro.disponibles > 0 %}
-                            <form method="post"
-                                  action="{% url 'solicitar_prestamo' libro.id %}"
-                                  class="mt-3">
-                                {% csrf_token %}
-                                <button type="submit" class="btn-solicitar">
+                            <div class="mt-3">
+                                <button type="button"
+                                        class="btn-solicitar"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#modalConfirmarSolicitud">
                                     <i class="bi bi-bookmark-plus"></i>
                                     Solicitar préstamo
                                 </button>
-                            </form>
+                            </div>
+
+                            <!-- Resumen y confirmación de la solicitud (CU-06 pasos 5, 6 y 6a) -->
+                            <div class="modal fade" id="modalConfirmarSolicitud" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title fw-bold" style="color: var(--azul);">
+                                                Confirmar solicitud de préstamo
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p class="text-secondary small mb-3">
+                                                Revisa el resumen de tu solicitud antes de apartar el ejemplar:
+                                            </p>
+                                            <ul class="list-group list-group-flush mb-2">
+                                                <li class="list-group-item d-flex justify-content-between px-0">
+                                                    <span class="text-secondary">Título</span>
+                                                    <strong class="text-end">{{ libro.titulo }}</strong>
+                                                </li>
+                                                {% if politica %}
+                                                <li class="list-group-item d-flex justify-content-between px-0">
+                                                    <span class="text-secondary">Días de préstamo (RN-01)</span>
+                                                    <strong>{{ politica.dias_prestamo }} días naturales</strong>
+                                                </li>
+                                                <li class="list-group-item d-flex justify-content-between px-0">
+                                                    <span class="text-secondary">Fecha estimada de vencimiento</span>
+                                                    <strong>{{ fecha_vencimiento_estimada|date:"d/m/Y" }}</strong>
+                                                </li>
+                                                <li class="list-group-item d-flex justify-content-between px-0">
+                                                    <span class="text-secondary">Plazo para recoger en mostrador (RN-06)</span>
+                                                    <strong>{{ politica.horas_para_recoger }} horas (hasta {{ limite_recoger_estimado|date:"d/m/Y H:i" }})</strong>
+                                                </li>
+                                                {% endif %}
+                                            </ul>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                                Cancelar
+                                            </button>
+                                            <form method="post" action="{% url 'solicitar_prestamo' libro.id %}" class="m-0">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn-solicitar">
+                                                    <i class="bi bi-check2-circle"></i>
+                                                    Confirmar solicitud
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         {% else %}
                             <!-- Flujo alternativo 2a de CU-06: si no hay disponibles, permite reservar -->
                             <form method="post"

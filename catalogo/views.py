@@ -78,9 +78,12 @@ def lista_libros(request):
     return render(request, 'catalogo/lista_libros.html', contexto)
 
 
-# Muestra la información completa de un libro seleccionado
+# Muestra la información completa de un libro seleccionado (CU-05)
 @login_required
 def detalle_libro(request, libro_id):
+    from datetime import timedelta
+    from django.utils import timezone
+    from prestamos.models import PoliticaPrestamo
 
     # Busca el libro solicitado y devuelve 404 si no existe
     libro = get_object_or_404(
@@ -93,9 +96,24 @@ def detalle_libro(request, libro_id):
         libro=libro
     ).order_by('codigo_inventario')
 
+    # Obtiene la política del lector para mostrar el resumen previo en CU-06 (paso 5)
+    politica = None
+    fecha_vencimiento_estimada = None
+    limite_recoger_estimado = None
+    if request.user.tipo_usuario in ('ESTUDIANTE', 'PROFESOR'):
+        politica = PoliticaPrestamo.objects.filter(
+            tipo_usuario=request.user.tipo_usuario
+        ).first()
+        if politica:
+            fecha_vencimiento_estimada = timezone.localdate() + timedelta(days=politica.dias_prestamo)
+            limite_recoger_estimado = timezone.now() + timedelta(hours=politica.horas_para_recoger)
+
     contexto = {
         'libro': libro,
         'ejemplares': ejemplares,
+        'politica': politica,
+        'fecha_vencimiento_estimada': fecha_vencimiento_estimada,
+        'limite_recoger_estimado': limite_recoger_estimado,
     }
 
     return render(request, 'catalogo/detalle_libro.html', contexto)
