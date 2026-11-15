@@ -1,6 +1,3 @@
-from django.shortcuts import render
-
-# Create your views here.
 from decimal import Decimal, InvalidOperation
 
 from django.shortcuts import get_object_or_404, redirect, render
@@ -8,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
 from django.db.models import Sum
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
@@ -23,14 +21,19 @@ def es_bibliotecario(usuario):
 
 # Calcula cuánto se ha pagado de una multa
 def total_pagado(multa):
-    return multa.pago_set.aggregate(t=Sum('monto'))['t'] or Decimal('0')
+    return multa.pago_set.aggregate(t=Sum('monto'))['t'] or Decimal('0.00')
 
 
-# Agrega pagado y saldo a cada multa para mostrarlos en las plantillas
+# Agrega pagado y saldo a cada multa en una sola consulta SQL
 def con_saldos(multas):
+    if hasattr(multas, 'annotate') and not multas.query.is_sliced:
+        multas = multas.annotate(
+            pagado=Coalesce(Sum('pago__monto'), Decimal('0.00'))
+        )
     lista = list(multas)
     for m in lista:
-        m.pagado = total_pagado(m)
+        if not hasattr(m, 'pagado') or m.pagado is None:
+            m.pagado = total_pagado(m)
         m.saldo = m.monto - m.pagado
     return lista
 
@@ -72,7 +75,11 @@ def gestion_multas(request):
         messages.error(request, "Esta sección es solo para bibliotecarios.")
         return redirect('panel')
 
-    base = Multa.objects.select_related('usuario', 'prestamo__ejemplar__libro')
+    base = Multa.objects.select_related(
+        'usuario', 'prestamo__ejemplar__libro'
+    ).annotate(
+        pagado=Coalesce(Sum('pago__monto'), Decimal('0.00'))
+    )
 
     pendientes = con_saldos(base.filter(estado='PENDIENTE').order_by('fecha_generacion'))
     historial = con_saldos(base.exclude(estado='PENDIENTE').order_by('-fecha_generacion')[:20])
