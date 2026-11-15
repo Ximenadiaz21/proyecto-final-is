@@ -9,14 +9,10 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from cuentas.views_usuarios import es_bibliotecario
 from .models import Multa, Pago
 
 METODOS_VALIDOS = ['EFECTIVO', 'TARJETA', 'TRANSFERENCIA']
-
-
-# Revisa que el usuario sea bibliotecario activo y no esté bloqueado
-def es_bibliotecario(usuario):
-    return usuario.tipo_usuario == 'BIBLIOTECARIO' and not usuario.bloqueado
 
 
 # Calcula cuánto se ha pagado de una multa

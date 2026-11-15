@@ -9,13 +9,9 @@ from django.views.decorators.http import require_POST
 
 from catalogo.models import Ejemplar, Libro
 from cuentas.models import Notificacion
+from cuentas.views_usuarios import es_bibliotecario
 from .models import PoliticaPrestamo, Prestamo, Reserva
-from .reglas import liberar_o_asignar_ejemplar, motivo_inelegible
-
-
-# Revisa que el usuario sea bibliotecario y no esté bloqueado
-def es_bibliotecario(usuario):
-    return usuario.tipo_usuario == 'BIBLIOTECARIO' and not usuario.bloqueado
+from .reglas import liberar_o_asignar_ejemplar, libros_en_uso, motivo_inelegible
 
 
 # Permite a un estudiante o profesor reservar un libro sin ejemplares disponibles (CU-11)
@@ -211,11 +207,8 @@ def atender_reserva(request, reserva_id):
             messages.error(request, "No hay política de préstamo configurada para este tipo de usuario.")
             return redirect('gestion_reservas')
 
-        # 3. Verifica el límite de libros simultáneos (RN-02)
-        prestamos_activos = Prestamo.objects.filter(
-            usuario=lector,
-            estado__in=['SOLICITADO', 'ACTIVO', 'VENCIDO']
-        ).count()
+        # 3. Verifica el límite de libros simultáneos sin contar esta misma reserva (RN-02)
+        prestamos_activos = libros_en_uso(lector, excluir_reserva_id=reserva.id)
 
         if prestamos_activos >= politica.max_libros:
             messages.error(

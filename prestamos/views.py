@@ -10,8 +10,9 @@ from django.utils import timezone
 
 from catalogo.models import Libro, Ejemplar
 from cuentas.models import Notificacion, Usuario
+from cuentas.views_usuarios import es_bibliotecario
 from .models import PoliticaPrestamo, Prestamo, Reserva
-from .reglas import motivo_inelegible, liberar_o_asignar_ejemplar
+from .reglas import libros_en_uso, motivo_inelegible, liberar_o_asignar_ejemplar
 from multas.models import Multa
 
 
@@ -42,11 +43,8 @@ def solicitar_prestamo(request, libro_id):
         messages.error(request, "No hay una política de préstamo configurada para tu tipo de usuario.")
         return redirect('lista_libros')
 
-    # 4. Límite de libros simultáneos (RN-02)
-    prestamos_activos = Prestamo.objects.filter(
-        usuario=usuario,
-        estado__in=['SOLICITADO', 'ACTIVO', 'VENCIDO']
-    ).count()
+    # 4. Límite de libros simultáneos, incluyendo reservas con ejemplar apartado (RN-02)
+    prestamos_activos = libros_en_uso(usuario)
 
     if prestamos_activos >= politica.max_libros:
         messages.error(request, f"Has alcanzado el límite máximo de libros permitidos ({politica.max_libros}).")
@@ -145,11 +143,6 @@ def mis_prestamos(request):
     }
 
     return render(request, 'prestamos/mis_prestamos.html', contexto)
-
-
-# Revisa que el usuario sea bibliotecario y no esté bloqueado
-def es_bibliotecario(usuario):
-    return usuario.tipo_usuario == 'BIBLIOTECARIO' and not usuario.bloqueado
 
 
 # Muestra las solicitudes por entregar y los libros prestados
@@ -368,10 +361,7 @@ def registrar_prestamo_mostrador(request):
         return redirect('gestion_prestamos')
 
     # 4. Verifica límite de libros simultáneos (RN-02)
-    prestamos_activos = Prestamo.objects.filter(
-        usuario=lector,
-        estado__in=['SOLICITADO', 'ACTIVO', 'VENCIDO']
-    ).count()
+    prestamos_activos = libros_en_uso(lector)
 
     if prestamos_activos >= politica.max_libros:
         messages.error(

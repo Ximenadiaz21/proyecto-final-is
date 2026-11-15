@@ -24,11 +24,16 @@ COLUMNAS_CSV = [
 COLUMNAS_OBLIGATORIAS = {'username', 'nombre', 'apellidos', 'correo', 'tipo'}
 
 
+# Revisa que el usuario sea un bibliotecario activo y no esté bloqueado
+def es_bibliotecario(usuario):
+    return usuario.is_authenticated and usuario.tipo_usuario == 'BIBLIOTECARIO' and not usuario.bloqueado
+
+
 # Deja pasar solo a bibliotecarios que no estén bloqueados
 def bibliotecario_requerido(vista):
     @wraps(vista)
     def envoltura(request, *args, **kwargs):
-        if request.user.tipo_usuario != 'BIBLIOTECARIO' or request.user.bloqueado:
+        if not es_bibliotecario(request.user):
             raise PermissionDenied
         return vista(request, *args, **kwargs)
 

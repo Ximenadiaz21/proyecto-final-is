@@ -7,6 +7,23 @@ from .models import Prestamo, Reserva
 from datetime import timedelta
 
 
+# Cuenta los préstamos en curso y las reservas con ejemplar ya apartado (RN-02)
+def libros_en_uso(usuario, excluir_reserva_id=None):
+    prestamos = Prestamo.objects.filter(
+        usuario=usuario,
+        estado__in=['SOLICITADO', 'ACTIVO', 'VENCIDO']
+    ).count()
+
+    reservas_apartadas = Reserva.objects.filter(
+        usuario=usuario,
+        estado='DISPONIBLE'
+    )
+    if excluir_reserva_id is not None:
+        reservas_apartadas = reservas_apartadas.exclude(id=excluir_reserva_id)
+
+    return prestamos + reservas_apartadas.count()
+
+
 # Elegibilidad del usuario (CU-07, RN-08).
 # Devuelve el motivo si no puede pedir ni renovar libros, o '' si está al corriente.
 def motivo_inelegible(usuario):
