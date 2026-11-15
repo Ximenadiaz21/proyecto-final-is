@@ -65,8 +65,8 @@ Proyecto final de Ingeniería de Software. Aplicación web hecha con **Django 5.
    python manage.py libros
    ```
 
-   - `usuarios`: crea estudiantes, profesores y bibliotecario.
-   - `libros`: carga 50 libros con 100 ejemplares. Consulta OpenLibrary, así que necesita conexión a internet y tarda más de un minuto.
+   - `usuarios`: crea estudiantes, profesores y bibliotecarios.
+   - `libros`: carga 50 libros con 100 ejemplares (consulta OpenLibrary si hay internet, o usa datos locales con `--offline`).
 
 8. **Inicia el servidor**
 
