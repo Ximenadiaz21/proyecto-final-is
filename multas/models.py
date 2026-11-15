@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 
 
@@ -20,6 +21,20 @@ class Multa(models.Model):
     class Meta:
         db_table = 'multa'
         db_table_comment = 'Multa por retraso, daño o pérdida de un ejemplar'
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(motivo__in=['RETRASO', 'DANIO', 'PERDIDA']),
+                name='chk_multa_motivo',
+            ),
+            models.CheckConstraint(
+                condition=Q(estado__in=['PENDIENTE', 'PAGADA', 'CONDONADA']),
+                name='chk_multa_estado',
+            ),
+            models.CheckConstraint(
+                condition=Q(monto__gt=0),
+                name='chk_multa_monto_positivo',
+            ),
+        ]
 
 
 class Pago(models.Model):
@@ -36,3 +51,13 @@ class Pago(models.Model):
     class Meta:
         db_table = 'pago'
         db_table_comment = 'Pago (total o parcial) de una multa'
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(metodo__in=['EFECTIVO', 'TARJETA', 'TRANSFERENCIA']),
+                name='chk_pago_metodo',
+            ),
+            models.CheckConstraint(
+                condition=Q(monto__gt=0),
+                name='chk_pago_monto_positivo',
+            ),
+        ]

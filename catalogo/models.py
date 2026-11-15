@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 
 
 class Autor(models.Model):
@@ -45,6 +46,7 @@ class Libro(models.Model):
     subtitulo = models.CharField(max_length=255, blank=True, null=True)
     editorial = models.ForeignKey(Editorial, models.PROTECT)
     categoria = models.ForeignKey(Categoria, models.PROTECT)
+    autores = models.ManyToManyField(Autor, through='LibroAutor')
     anio_publicacion = models.PositiveSmallIntegerField(blank=True, null=True)
     edicion = models.CharField(max_length=30, blank=True, null=True)
     idioma = models.CharField(max_length=30, default='Español')
@@ -57,6 +59,12 @@ class Libro(models.Model):
     class Meta:
         db_table = 'libro'
         db_table_comment = 'Título u obra; los objetos físicos están en ejemplar'
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(costo_reposicion__gte=0),
+                name='chk_libro_costo_reposicion',
+            ),
+        ]
 
     def __str__(self):
         return self.titulo
@@ -66,7 +74,7 @@ class LibroAutor(models.Model):
     id = models.BigAutoField(primary_key=True)
     libro = models.ForeignKey(Libro, models.CASCADE)
     autor = models.ForeignKey(Autor, models.PROTECT)
-    orden = models.PositiveIntegerField(default=1)
+    orden = models.PositiveSmallIntegerField(default=1)
 
     class Meta:
         db_table = 'libro_autor'
@@ -95,6 +103,12 @@ class Ejemplar(models.Model):
     class Meta:
         db_table = 'ejemplar'
         db_table_comment = 'Copia física de un libro'
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(estado__in=['DISPONIBLE', 'RESERVADO', 'PRESTADO', 'EN_REPARACION', 'PERDIDO', 'BAJA']),
+                name='chk_ejemplar_estado',
+            ),
+        ]
 
     def __str__(self):
         return self.codigo_inventario

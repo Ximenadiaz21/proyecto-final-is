@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 
 
@@ -18,6 +19,16 @@ class PoliticaPrestamo(models.Model):
     class Meta:
         db_table = 'politica_prestamo'
         db_table_comment = 'Parámetros de préstamo por tipo de usuario'
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(tipo_usuario__in=['ESTUDIANTE', 'PROFESOR']),
+                name='chk_politica_tipo_usuario',
+            ),
+            models.CheckConstraint(
+                condition=Q(multa_por_dia__gte=0, multa_maxima__gte=0),
+                name='chk_politica_multas_no_negativas',
+            ),
+        ]
 
 
 class Prestamo(models.Model):
@@ -48,6 +59,12 @@ class Prestamo(models.Model):
     class Meta:
         db_table = 'prestamo'
         db_table_comment = 'Préstamo de un ejemplar a un usuario lector'
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(estado__in=['SOLICITADO', 'ACTIVO', 'VENCIDO', 'DEVUELTO', 'CANCELADO', 'EXPIRADO', 'PERDIDO']),
+                name='chk_prestamo_estado',
+            ),
+        ]
 
     # Calcula los días naturales de retraso respecto a la fecha de vencimiento (RN-07)
     def dias_retraso(self, fecha=None):
@@ -84,3 +101,9 @@ class Reserva(models.Model):
     class Meta:
         db_table = 'reserva'
         db_table_comment = 'Reserva de un título sin ejemplares disponibles (cola FIFO)'
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(estado__in=['PENDIENTE', 'DISPONIBLE', 'ATENDIDA', 'CANCELADA', 'EXPIRADA']),
+                name='chk_reserva_estado',
+            ),
+        ]

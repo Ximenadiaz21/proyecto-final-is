@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 
 
@@ -11,6 +12,7 @@ class Usuario(AbstractUser):
         ('BIBLIOTECARIO', 'Bibliotecario'),
     ]
 
+    email = models.EmailField(unique=True, max_length=254)
     tipo_usuario = models.CharField(max_length=15, choices=TIPO_CHOICES, default='BIBLIOTECARIO')
     telefono = models.CharField(max_length=20, null=True, blank=True)
     bloqueado = models.BooleanField(default=False)
@@ -18,6 +20,12 @@ class Usuario(AbstractUser):
 
     class Meta:
         db_table = 'usuario'
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(tipo_usuario__in=['ESTUDIANTE', 'PROFESOR', 'BIBLIOTECARIO']),
+                name='chk_usuario_tipo',
+            ),
+        ]
 
     def __str__(self):
         return f"{self.username} - {self.get_tipo_usuario_display()}"
@@ -52,11 +60,17 @@ class Estudiante(models.Model):
     usuario = models.OneToOneField('Usuario', models.CASCADE, primary_key=True)
     matricula = models.CharField(unique=True, max_length=20)
     carrera = models.ForeignKey(Carrera, models.PROTECT)
-    semestre = models.PositiveIntegerField()
+    semestre = models.PositiveSmallIntegerField()
 
     class Meta:
         db_table = 'estudiante'
         db_table_comment = 'Perfil de estudiante (1 a 1 con usuario)'
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(semestre__gte=1, semestre__lte=12),
+                name='chk_estudiante_semestre',
+            ),
+        ]
 
 
 class Profesor(models.Model):
@@ -88,6 +102,12 @@ class Notificacion(models.Model):
     class Meta:
         db_table = 'notificacion'
         ordering = ['-fecha']
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(tipo__in=['VENCE_PRONTO', 'VENCIDO', 'RESERVA_DISPONIBLE', 'MULTA', 'GENERAL']),
+                name='chk_notificacion_tipo',
+            ),
+        ]
 
 
 class SugerenciaAdquisicion(models.Model):
@@ -110,3 +130,9 @@ class SugerenciaAdquisicion(models.Model):
     class Meta:
         db_table = 'sugerencia_adquisicion'
         db_table_comment = 'Sugerencias de compra enviadas por profesores'
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(estado__in=['PENDIENTE', 'APROBADA', 'RECHAZADA']),
+                name='chk_sugerencia_estado',
+            ),
+        ]

@@ -27,7 +27,7 @@ class UsuarioForm(forms.Form):
         label='Carrera', queryset=Carrera.objects.order_by('nombre'), required=False,
         empty_label='Selecciona una carrera',
     )
-    semestre = forms.IntegerField(label='Semestre', min_value=1, max_value=20, required=False)
+    semestre = forms.IntegerField(label='Semestre', min_value=1, max_value=12, required=False)
 
     # Datos del profesor
     num_empleado = forms.CharField(label='Número de empleado', max_length=20, required=False)
