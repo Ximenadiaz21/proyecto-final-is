@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 
 from django.db.models import Count, Q, Sum
@@ -28,12 +28,12 @@ def reportes(request):
     hoy = timezone.localdate()
 
     # 1. Obtiene el rango de fechas para el reporte de préstamos por periodo
-    # Por defecto muestra los últimos 30 días naturales
+    # Por defecto muestra el semestre del 9 de agosto al 10 de diciembre
     inicio_str = request.GET.get('fecha_inicio', '').strip()
     fin_str = request.GET.get('fecha_fin', '').strip()
 
-    fecha_inicio = _parsear_fecha(inicio_str) or (hoy - timedelta(days=30))
-    fecha_fin = _parsear_fecha(fin_str) or hoy
+    fecha_inicio = _parsear_fecha(inicio_str) or date(hoy.year, 8, 9)
+    fecha_fin = _parsear_fecha(fin_str) or date(hoy.year, 12, 10)
 
     # Si el usuario invirtió el orden de las fechas, las intercambia
     if fecha_inicio > fecha_fin:
@@ -42,9 +42,12 @@ def reportes(request):
     # =========================================================================
     # REPORTE 1: Préstamos por periodo (RF-14)
     # =========================================================================
+    inicio_dt = timezone.make_aware(datetime.combine(fecha_inicio, time.min))
+    fin_dt = timezone.make_aware(datetime.combine(fecha_fin, time.max))
+
     prestamos_periodo = Prestamo.objects.filter(
-        fecha_solicitud__date__gte=fecha_inicio,
-        fecha_solicitud__date__lte=fecha_fin,
+        fecha_solicitud__gte=inicio_dt,
+        fecha_solicitud__lte=fin_dt,
     ).select_related(
         'usuario', 'ejemplar', 'ejemplar__libro'
     ).order_by('-fecha_solicitud', '-id')
