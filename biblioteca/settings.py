@@ -138,16 +138,26 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 
-# Email
-# https://docs.djangoproject.com/en/5.2/topics/email/#topic-email-configuration
+# Configuración de correo electrónico para recuperación de contraseña (CU-03) y notificaciones (RF-15)
+# Si se configuran EMAIL_HOST_USER y EMAIL_HOST_PASSWORD en .env, envía correos reales por SMTP;
+# de lo contrario, utiliza el backend de consola para imprimir los correos en la terminal.
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').strip().lower() in ('true', '1', 'yes', 'si')
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '').strip()
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '').strip()
 
 EMAIL_BACKEND = os.environ.get(
     'EMAIL_BACKEND',
-    'django.core.mail.backends.console.EmailBackend',
+    (
+        'django.core.mail.backends.smtp.EmailBackend'
+        if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD
+        else 'django.core.mail.backends.console.EmailBackend'
+    ),
 )
 DEFAULT_FROM_EMAIL = os.environ.get(
     'DEFAULT_FROM_EMAIL',
-    'no-reply@biblioteca.escolar.mx',
+    EMAIL_HOST_USER or 'no-reply@biblioteca.escolar.mx',
 )
 
 

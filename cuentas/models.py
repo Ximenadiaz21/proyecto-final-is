@@ -1,4 +1,6 @@
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
+from django.core.mail import send_mail
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
@@ -92,6 +94,15 @@ class Notificacion(models.Model):
         ('GENERAL', 'General'),
     ]
 
+    # Asuntos de correo según el tipo de notificación (RF-15)
+    ASUNTOS_CORREO = {
+        'VENCE_PRONTO': 'Recordatorio de vencimiento próximo - Biblioteca Escolar',
+        'VENCIDO': 'Aviso de préstamo vencido - Biblioteca Escolar',
+        'RESERVA_DISPONIBLE': 'Tu libro reservado ya está disponible - Biblioteca Escolar',
+        'MULTA': 'Aviso de multa registrada - Biblioteca Escolar',
+        'GENERAL': 'Notificación - Biblioteca Escolar',
+    }
+
     id = models.BigAutoField(primary_key=True)
     usuario = models.ForeignKey('Usuario', models.CASCADE)
     tipo = models.CharField(max_length=20, choices=TIPOS)
@@ -108,6 +119,39 @@ class Notificacion(models.Model):
                 name='chk_notificacion_tipo',
             ),
         ]
+
+    # Envía la notificación también por correo electrónico al usuario (RF-15, CU-36)
+    def enviar_correo(self):
+        # Si el usuario no tiene correo registrado, no intenta enviarlo
+        if not self.usuario_id or not self.usuario.email:
+            return
+
+        asunto = self.ASUNTOS_CORREO.get(self.tipo, 'Notificación - Biblioteca Escolar')
+        nombre = self.usuario.get_full_name() or self.usuario.username
+        cuerpo = (
+            f"Hola {nombre},\n\n"
+            f"{self.mensaje}\n\n"
+            f"Puedes consultar tus préstamos, reservas y notificaciones iniciando sesión "
+            f"en el Sistema de Gestión de Biblioteca Escolar.\n\n"
+            f"Atentamente,\n"
+            f"Biblioteca Escolar"
+        )
+
+        # Usa fail_silently=True para que una falla de red nunca interrumpa una transacción
+        send_mail(
+            subject=asunto,
+            message=cuerpo,
+            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@biblioteca.escolar.mx'),
+            recipient_list=[self.usuario.email],
+            fail_silently=True,
+        )
+
+    # Al crear una nueva notificación en la base de datos, dispara el envío por correo (RF-15)
+    def save(self, *args, **kwargs):
+        es_nueva = self._state.adding
+        super().save(*args, **kwargs)
+        if es_nueva:
+            self.enviar_correo()
 
 
 class SugerenciaAdquisicion(models.Model):
