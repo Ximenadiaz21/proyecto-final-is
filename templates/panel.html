@@ -56,18 +56,6 @@
     </style>
 {% endblock %}
 
-{% block nav_extra %}
-                <!-- Acceso rápido a notificaciones -->
-                <a href="{% url 'mis_notificaciones' %}" class="usuario-navbar text-decoration-none position-relative" title="Mis notificaciones">
-                    <i class="bi bi-bell fs-5"></i>
-                    {% if notificaciones_no_leidas %}
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 10px;">
-                            {{ notificaciones_no_leidas }}
-                        </span>
-                    {% endif %}
-                </a>
-{% endblock %}
-
 {% block content %}
         <!-- Muestra aviso visible si la cuenta del usuario está bloqueada -->
         {% if usuario.bloqueado %}

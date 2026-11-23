@@ -1,300 +1,55 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% extends "base.html" %}
 
-    <title>{{ libro.titulo }} | Biblioteca Escolar</title>
+{% block title %}{{ libro.titulo }} | Biblioteca Escolar{% endblock %}
 
-    <!-- Diseño e iconos de Bootstrap -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-
+{% block extra_css %}
     <style>
-        :root {
-            --azul: #142b43;
-            --dorado: #c5a16b;
-            --fondo: #f5f6f8;
-            --gris: #6e7b88;
-        }
-
-        body {
-            margin: 0;
-            min-height: 100vh;
-            background: var(--fondo);
-            font-family: "Segoe UI", Arial, sans-serif;
-            color: #273747;
-        }
-
-        /* Barra de navegación de la biblioteca */
-        .barra {
-            background: var(--azul);
-            padding: 16px 0;
-        }
-
-        .marca {
-            color: white;
-            text-decoration: none;
-            font-size: 20px;
-            font-weight: 600;
-        }
-
-        .marca:hover {
-            color: white;
-        }
-
-        .marca i {
-            color: var(--dorado);
-            margin-right: 8px;
-        }
-
-        .enlace {
-            color: #e5e9ed;
-            font-size: 13px;
-            text-decoration: none;
-        }
-
-        .enlace:hover {
-            color: white;
-        }
-
-        /* Encabezado de la ficha */
-        .contenido {
-            max-width: 1150px;
-            margin: 36px auto;
-            padding: 0 22px 60px;
-        }
-
-        .etiqueta {
-            color: #a47e49;
-            font-size: 11px;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            font-weight: 700;
-        }
-
-        h1, h2 {
-            color: var(--azul);
-            font-family: Georgia, "Times New Roman", serif;
-        }
-
-        h1 {
-            font-size: 37px;
-            margin: 8px 0 12px;
-        }
-
-        .descripcion {
-            color: var(--gris);
-            font-size: 14px;
-        }
-
-        .linea {
-            width: 55px;
-            height: 3px;
-            background: var(--dorado);
-            margin: 18px 0 27px;
-        }
-
-        /* Tarjeta principal del libro */
-        .tarjeta {
-            background: white;
-            border: 1px solid #e4e8ed;
-            border-radius: 12px;
-            padding: 30px;
-            margin-bottom: 22px;
-        }
-
+        .contenido { max-width: 1150px; padding-bottom: 40px; }
+        h1, h2 { color: var(--azul); font-family: Georgia, "Times New Roman", serif; }
+        h1 { font-size: 37px; margin: 8px 0 12px; }
+        .descripcion { color: var(--gris); font-size: 14px; }
+        .linea { width: 55px; height: 3px; background: var(--dorado); margin: 18px 0 27px; }
+        .tarjeta { background: white; border: 1px solid #e4e8ed; border-radius: 12px; padding: 30px; margin-bottom: 22px; }
         .portada-contenedor {
-            background: #f7f3ec;
-            min-height: 340px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 22px;
-            overflow: hidden;
+            background: #f7f3ec; min-height: 340px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center; padding: 22px; overflow: hidden;
         }
-
-        .portada {
-            max-width: 100%;
-            max-height: 330px;
-            object-fit: contain;
-            border-radius: 4px;
-        }
-
-        .portada-vacia {
-            color: #c5a16b;
-            font-size: 90px;
-        }
-
-        .titulo-libro {
-            font-size: 31px;
-            margin-bottom: 12px;
-        }
-
-        .autores {
-            color: var(--gris);
-            font-size: 15px;
-            margin-bottom: 22px;
-        }
-
-        .dato {
-            border-bottom: 1px solid #edf0f3;
-            padding: 12px 0;
-        }
-
-        .dato-nombre {
-            color: var(--gris);
-            font-size: 12px;
-            margin-bottom: 4px;
-        }
-
-        .dato-valor {
-            color: var(--azul);
-            font-size: 14px;
-            font-weight: 600;
-            overflow-wrap: anywhere;
-        }
-
-        .disponibilidad {
-            display: inline-block;
-            padding: 9px 13px;
-            border-radius: 7px;
-            font-size: 13px;
-            font-weight: 600;
-            margin-top: 18px;
-        }
-
-        .disponible {
-            background: #e8f5ec;
-            color: #276749;
-        }
-
-        .no-disponible {
-            background: #fff4df;
-            color: #975a16;
-        }
-
-        /* Descripción y ejemplares */
-        .titulo-seccion {
-            font-size: 23px;
-            margin-bottom: 19px;
-        }
-
-        .texto-descripcion {
-            color: #536477;
-            font-size: 14px;
-            line-height: 1.8;
-            white-space: pre-line;
-        }
-
-        .tabla-ejemplares {
-            width: 100%;
-            font-size: 13px;
-        }
-
-        .tabla-ejemplares th {
-            background: #edf1f5;
-            color: var(--azul);
-            padding: 14px;
-        }
-
-        .tabla-ejemplares td {
-            color: #536477;
-            border-bottom: 1px solid #edf0f3;
-            padding: 14px;
-        }
-
+        .portada { max-width: 100%; max-height: 330px; object-fit: contain; border-radius: 4px; }
+        .portada-vacia { color: #c5a16b; font-size: 90px; }
+        .titulo-libro { font-size: 31px; margin-bottom: 12px; }
+        .autores { color: var(--gris); font-size: 15px; margin-bottom: 22px; }
+        .dato { border-bottom: 1px solid #edf0f3; padding: 12px 0; }
+        .dato-nombre { color: var(--gris); font-size: 12px; margin-bottom: 4px; }
+        .dato-valor { color: var(--azul); font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+        .disponibilidad { display: inline-block; padding: 9px 13px; border-radius: 7px; font-size: 13px; font-weight: 600; margin-top: 18px; }
+        .disponible { background: #e8f5ec; color: #276749; }
+        .no-disponible { background: #fff4df; color: #975a16; }
+        .titulo-seccion { font-size: 23px; margin: 0 0 19px; }
+        .texto-descripcion { color: #536477; font-size: 14px; line-height: 1.8; white-space: pre-line; }
+        .tabla-ejemplares { width: 100%; font-size: 13px; }
+        .tabla-ejemplares th { background: #edf1f5; color: var(--azul); padding: 14px; }
+        .tabla-ejemplares td { color: #536477; border-bottom: 1px solid #edf0f3; padding: 14px; }
         .btn-volver {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--azul);
-            color: white;
-            border-radius: 7px;
-            padding: 12px 22px;
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: 600;
+            display: inline-flex; align-items: center; gap: 8px; background: var(--azul); color: white;
+            border-radius: 7px; padding: 12px 22px; text-decoration: none; font-size: 13px; font-weight: 600;
         }
-
-        .btn-volver:hover {
-            background: #284b68;
-            color: white;
-        }
-
-        /* Botón para solicitar el préstamo */
+        .btn-volver:hover { background: #284b68; color: white; }
         .btn-solicitar {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            background: linear-gradient(135deg, #d2b07c, var(--dorado));
-            color: var(--azul);
-            border: none;
-            border-radius: 8px;
-            padding: 12px 22px;
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
-            box-shadow: 0 3px 10px rgba(197, 161, 107, 0.35);
-            transition: transform .15s ease, box-shadow .15s ease;
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            background: linear-gradient(135deg, #d2b07c, var(--dorado)); color: var(--azul); border: none;
+            border-radius: 8px; padding: 12px 22px; font-size: 14px; font-weight: 700; cursor: pointer;
+            box-shadow: 0 3px 10px rgba(197, 161, 107, 0.35); transition: transform .15s ease, box-shadow .15s ease;
         }
-
-        .btn-solicitar:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(197, 161, 107, 0.5);
-        }
-
+        .btn-solicitar:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(197, 161, 107, 0.5); }
         @media (max-width: 700px) {
-            .tarjeta {
-                padding: 20px;
-            }
-
-            h1 {
-                font-size: 29px;
-            }
-
-            .titulo-libro {
-                font-size: 26px;
-            }
-
-            .contenido {
-                margin: 25px auto;
-            }
+            .tarjeta { padding: 20px; }
+            h1 { font-size: 29px; }
+            .titulo-libro { font-size: 26px; }
         }
     </style>
-</head>
+{% endblock %}
 
-<body>
-
-    <!-- Barra superior -->
-    <nav class="barra">
-        <div class="container d-flex justify-content-between align-items-center">
-            <a href="{% url 'panel' %}" class="marca">
-                <i class="bi bi-book-half"></i>
-                Biblioteca Escolar
-            </a>
-
-            <a href="{% url 'lista_libros' %}" class="enlace">
-                <i class="bi bi-arrow-left me-1"></i>
-                Volver al catálogo
-            </a>
-        </div>
-    </nav>
-
-    <main class="contenido">
-
-        <!-- Muestra los mensajes enviados por Django -->
-        {% if messages %}
-            {% for mensaje in messages %}
-                <div class="alert alert-{% if mensaje.tags == 'error' %}danger{% else %}{{ mensaje.tags }}{% endif %} alert-dismissible fade show" role="alert">
-                    {{ mensaje }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
-
+{% block content %}
         <!-- Encabezado -->
         <div class="etiqueta">
             Colección bibliográfica
@@ -598,10 +353,9 @@
             <i class="bi bi-arrow-left"></i>
             Volver al catálogo
         </a>
+{% endblock %}
 
-    </main>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_js %}
     <script>
         (function () {
             const params = new URLSearchParams(window.location.search);
@@ -613,6 +367,4 @@
             }
         })();
     </script>
-
-</body>
-</html>
+{% endblock %}

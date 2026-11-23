@@ -14,20 +14,52 @@
 </head>
 
 <body>
+    <script>
+        if (localStorage.getItem('biblioteca_sidebar_oculta') === '1') {
+            document.body.classList.add('sidebar-oculta');
+        }
+    </script>
 
-    <!-- Barra de navegación compartida -->
+    <!-- Barra de navegación superior -->
     <nav class="navbar-biblioteca">
-        <div class="container d-flex justify-content-between align-items-center">
-            <a href="{% url 'panel' %}" class="marca">
-                <i class="bi bi-book-half"></i>
-                Biblioteca Escolar
-            </a>
+        <div class="container-fluid px-3 px-lg-4 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <!-- Botón menú lateral para tablet y celular -->
+                <button class="btn-menu-movil d-lg-none" type="button"
+                        data-bs-toggle="offcanvas" data-bs-target="#menuLateralMovil"
+                        aria-controls="menuLateralMovil" aria-label="Abrir menú lateral">
+                    <i class="bi bi-list"></i>
+                </button>
 
-            <div class="d-flex align-items-center gap-4">
+                <!-- Botón para esconder o mostrar la barra lateral en escritorio -->
+                <button class="btn-menu-movil d-none d-lg-inline-flex align-items-center justify-content-center"
+                        type="button" id="btnToggleSidebar"
+                        title="Ocultar o mostrar menú lateral" aria-label="Ocultar o mostrar menú lateral"
+                        aria-expanded="true">
+                    <i class="bi bi-layout-sidebar"></i>
+                </button>
+
+                <a href="{% url 'panel' %}" class="marca">
+                    <i class="bi bi-book-half"></i>
+                    <span>Biblioteca Escolar</span>
+                </a>
+            </div>
+
+            <div class="d-flex align-items-center gap-3 gap-md-4">
                 {% block nav_extra %}{% endblock %}
 
-                <span class="usuario-navbar">
-                    <i class="bi bi-person-circle me-2"></i>
+                <!-- Campana de notificaciones visible en todo el sistema -->
+                <a href="{% url 'mis_notificaciones' %}" class="usuario-navbar text-decoration-none position-relative" title="Mis notificaciones">
+                    <i class="bi bi-bell fs-5"></i>
+                    {% if notificaciones_no_leidas %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 10px;">
+                            {{ notificaciones_no_leidas }}
+                        </span>
+                    {% endif %}
+                </a>
+
+                <span class="usuario-navbar usuario-nombre-navbar">
+                    <i class="bi bi-person-circle me-1"></i>
                     {{ request.user.username }}
                 </span>
 
@@ -39,27 +71,72 @@
         </div>
     </nav>
 
-    <main class="contenido">
+    <!-- Menú lateral desplegable en móvil y tablet -->
+    <div class="offcanvas offcanvas-start sidebar-movil d-lg-none" tabindex="-1" id="menuLateralMovil" aria-labelledby="menuLateralMovilLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title d-flex align-items-center gap-2 fs-6 fw-semibold" id="menuLateralMovilLabel">
+                <i class="bi bi-book-half" style="color: var(--dorado);"></i>
+                Biblioteca Escolar
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+        </div>
+        <div class="offcanvas-body px-2 py-3">
+            {% include "includes/sidebar_menu.html" %}
+        </div>
+    </div>
 
-        <!-- Mensajes del sistema -->
-        {% if messages %}
-            {% for mensaje in messages %}
-                <div class="alert alert-{% if mensaje.tags == 'error' %}danger{% else %}{{ mensaje.tags }}{% endif %} alert-dismissible fade show" role="alert">
-                    {{ mensaje }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
+    <!-- Contenido con barra lateral fija en escritorio -->
+    <div class="layout-app">
+        <aside class="sidebar-biblioteca d-none d-lg-block">
+            {% include "includes/sidebar_menu.html" %}
+        </aside>
 
-        {% block content %}{% endblock %}
+        <div class="layout-principal">
+            <main class="contenido">
 
-    </main>
+                <!-- Mensajes del sistema -->
+                {% if messages %}
+                    {% for mensaje in messages %}
+                        <div class="alert alert-{% if mensaje.tags == 'error' %}danger{% else %}{{ mensaje.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                            {{ mensaje }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
 
-    <footer class="pie-pagina">
-        © 2026 Biblioteca Escolar · Sistema de Gestión
-    </footer>
+                {% block content %}{% endblock %}
+
+            </main>
+
+            <footer class="pie-pagina">
+                © 2026 Biblioteca Escolar · Sistema de Gestión
+            </footer>
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function () {
+            const btn = document.getElementById('btnToggleSidebar');
+            if (!btn) return;
+            const clave = 'biblioteca_sidebar_oculta';
+
+            function sincronizarEstado() {
+                const oculta = document.body.classList.contains('sidebar-oculta');
+                btn.setAttribute('aria-expanded', String(!oculta));
+                btn.title = oculta ? 'Mostrar menú lateral' : 'Ocultar menú lateral';
+            }
+
+            btn.addEventListener('click', function () {
+                document.body.classList.toggle('sidebar-oculta');
+                const oculta = document.body.classList.contains('sidebar-oculta');
+                localStorage.setItem(clave, oculta ? '1' : '0');
+                sincronizarEstado();
+            });
+
+            sincronizarEstado();
+        })();
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

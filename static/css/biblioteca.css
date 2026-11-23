@@ -5,6 +5,7 @@
     --dorado: #c5a16b;
     --fondo: #f5f6f8;
     --gris: #6e7b88;
+    --sidebar-ancho: 255px;
 }
 
 * {
@@ -25,15 +26,19 @@ body {
 .navbar-biblioteca {
     background-color: var(--azul);
     padding: 12px 0;
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    box-shadow: 0 2px 10px rgba(20, 43, 67, 0.14);
 }
 
 .marca {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 11px;
     color: white;
     text-decoration: none;
-    font-size: 20px;
+    font-size: 19px;
     font-weight: 600;
 }
 
@@ -43,7 +48,23 @@ body {
 
 .marca i {
     color: var(--dorado);
-    font-size: 26px;
+    font-size: 25px;
+}
+
+.btn-menu-movil {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    color: white;
+    border-radius: 7px;
+    padding: 5px 10px;
+    font-size: 18px;
+    line-height: 1;
+    transition: 0.2s;
+}
+
+.btn-menu-movil:hover {
+    background-color: rgba(255, 255, 255, 0.14);
+    color: white;
 }
 
 .usuario-navbar {
@@ -51,11 +72,15 @@ body {
     font-size: 13px;
 }
 
+.usuario-navbar:hover {
+    color: white;
+}
+
 .btn-salir {
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.5);
     border-radius: 7px;
-    padding: 8px 16px;
+    padding: 7px 14px;
     color: white;
     font-size: 13px;
     transition: 0.2s;
@@ -64,6 +89,123 @@ body {
 .btn-salir:hover {
     background-color: white;
     color: var(--azul);
+}
+
+/* Estructura principal con barra lateral */
+.layout-app {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+}
+
+.sidebar-biblioteca {
+    width: var(--sidebar-ancho);
+    flex-shrink: 0;
+    background-color: #ffffff;
+    border-right: 1px solid #e4e8ed;
+    padding: 18px 14px 24px;
+    position: sticky;
+    top: 58px;
+    height: calc(100vh - 58px);
+    overflow-y: auto;
+    transition: width 0.22s ease, padding 0.22s ease, opacity 0.18s ease;
+}
+
+body.sidebar-oculta .sidebar-biblioteca {
+    width: 0;
+    padding-left: 0;
+    padding-right: 0;
+    border-right-color: transparent;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.sidebar-movil {
+    width: 275px !important;
+    background-color: #ffffff;
+}
+
+.sidebar-movil .offcanvas-header {
+    background-color: var(--azul);
+    color: white;
+}
+
+.sidebar-grupo {
+    color: #9c794b;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.3px;
+    text-transform: uppercase;
+    padding: 14px 12px 6px;
+}
+
+.sidebar-grupo:first-child {
+    padding-top: 2px;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 12px;
+    margin-bottom: 3px;
+    border-radius: 8px;
+    color: #36495c;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.sidebar-link-izq {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.sidebar-link i {
+    font-size: 15px;
+    color: #7c8b99;
+    width: 18px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.sidebar-link:hover {
+    background-color: #f3f5f8;
+    color: var(--azul);
+}
+
+.sidebar-link:hover i {
+    color: var(--azul);
+}
+
+.sidebar-link.activo {
+    background-color: #eef3f8;
+    color: var(--azul);
+    font-weight: 700;
+    border-left: 3px solid var(--dorado);
+    padding-left: 9px;
+}
+
+.sidebar-link.activo i {
+    color: #a47e49;
+}
+
+.sidebar-pie {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #eef0f3;
+}
+
+.layout-principal {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Contenedor principal */
@@ -305,15 +447,27 @@ table.tabla td {
 }
 
 @media (max-width: 700px) {
-    .usuario-navbar {
+    .usuario-nombre-navbar {
         display: none;
     }
 
     .contenido {
-        padding: 0 18px;
+        padding: 0 16px;
     }
 
     h1.titulo {
         font-size: 27px;
+    }
+}
+
+@media print {
+    .navbar-biblioteca,
+    .sidebar-biblioteca,
+    .no-print {
+        display: none !important;
+    }
+
+    .layout-app {
+        display: block;
     }
 }

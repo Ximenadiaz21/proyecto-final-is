@@ -1,177 +1,27 @@
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% extends "base.html" %}
 
-    <title>{{ titulo_pagina }} | Biblioteca Escolar</title>
+{% block title %}{{ titulo_pagina }} | Biblioteca Escolar{% endblock %}
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-
+{% block extra_css %}
     <style>
-        body {
-            background: #f5f6f8;
-            color: #273747;
-            font-family: "Segoe UI", Arial, sans-serif;
-        }
-
-        .barra {
-            background: #142b43;
-            padding: 17px 0;
-        }
-
-        .marca {
-            color: white;
-            font-size: 20px;
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .marca i {
-            color: #c5a16b;
-            margin-right: 8px;
-        }
-
-        .marca:hover {
-            color: white;
-        }
-
-        .enlace {
-            color: #e5e9ed;
-            text-decoration: none;
-            font-size: 13px;
-        }
-
-        .contenedor {
-            max-width: 780px;
-            margin: 40px auto;
-            padding: 0 20px 50px;
-        }
-
-        .etiqueta {
-            color: #a47e49;
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-        }
-
-        h1, h2 {
-            color: #142b43;
-            font-family: Georgia, "Times New Roman", serif;
-        }
-
-        h1 {
-            font-size: 36px;
-            margin: 9px 0;
-        }
-
-        .descripcion {
-            color: #718092;
-            font-size: 14px;
-        }
-
-        .linea {
-            width: 55px;
-            height: 3px;
-            margin: 20px 0 28px;
-            background: #c5a16b;
-        }
-
-        .tarjeta {
-            background: white;
-            padding: 35px;
-            border: 1px solid #e4e8ed;
-            border-radius: 12px;
-        }
-
-        .form-label {
-            color: #142b43;
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        .form-control {
-            padding: 12px;
-            border: 1px solid #dce2e8;
-            border-radius: 7px;
-            font-size: 13px;
-        }
-
-        .form-control:focus {
-            border-color: #c5a16b;
-            box-shadow: 0 0 0 3px rgba(197, 161, 107, 0.15);
-        }
-
-        .btn-guardar {
-            background: #142b43;
-            color: white;
-            border: none;
-            border-radius: 7px;
-            padding: 12px 24px;
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        .btn-guardar:hover {
-            background: #284b68;
-        }
-
-        .btn-cancelar {
-            background: #edf0f3;
-            color: #536477;
-            border-radius: 7px;
-            padding: 12px 24px;
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        .error {
-            color: #b42318;
-            font-size: 12px;
-            margin-top: 5px;
-        }
-
-        @media (max-width: 600px) {
-            .tarjeta {
-                padding: 22px;
-            }
-
-            h1 {
-                font-size: 29px;
-            }
-        }
+        .contenedor { max-width: 780px; margin: 0 auto 30px; }
+        h1, h2 { color: var(--azul); font-family: Georgia, "Times New Roman", serif; }
+        h1 { font-size: 36px; margin: 9px 0; }
+        .descripcion { color: #718092; font-size: 14px; }
+        .linea { width: 55px; height: 3px; margin: 20px 0 28px; background: var(--dorado); }
+        .tarjeta { background: white; padding: 35px; border: 1px solid #e4e8ed; border-radius: 12px; }
+        .tarjeta .form-control { padding: 12px; }
+        .btn-guardar { background: var(--azul); color: white; border: none; border-radius: 7px; padding: 12px 24px; font-size: 13px; font-weight: 600; }
+        .btn-guardar:hover { background: var(--azul-secundario); }
+        .btn-cancelar { background: #edf0f3; color: #536477; border-radius: 7px; padding: 12px 24px; text-decoration: none; font-size: 13px; font-weight: 600; }
+        .error { color: #b42318; font-size: 12px; margin-top: 5px; }
+        @media (max-width: 600px) { .tarjeta { padding: 22px; } h1 { font-size: 29px; } }
     </style>
-</head>
+{% endblock %}
 
-<body>
-
-    <!-- Navegación de la biblioteca -->
-    <nav class="barra">
-        <div class="container d-flex justify-content-between align-items-center">
-            <a href="{% url 'panel' %}" class="marca">
-                <i class="bi bi-book-half"></i>
-                Biblioteca Escolar
-            </a>
-
-            {% if url_cancelar == 'gestion_catalogos' %}
-                <a href="{% url 'gestion_catalogos' %}" class="enlace">
-                    <i class="bi bi-arrow-left me-1"></i>
-                    Volver a catálogos
-                </a>
-            {% else %}
-                <a href="{% url 'nuevo_libro' %}" class="enlace">
-                    <i class="bi bi-arrow-left me-1"></i>
-                    Volver al libro
-                </a>
-            {% endif %}
-        </div>
-    </nav>
-
-    <main class="contenedor">
+{% block content %}
+    <div class="contenedor">
 
         <div class="etiqueta">
             Administración de biblioteca
@@ -247,7 +97,5 @@
 
         </form>
 
-    </main>
-
-</body>
-</html>
+    </div>
+{% endblock %}

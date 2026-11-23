@@ -1,0 +1,143 @@
+{% with url_actual=request.resolver_match.url_name %}
+<nav aria-label="Menú lateral de navegación">
+    <div class="sidebar-grupo">Principal</div>
+    <a href="{% url 'panel' %}" class="sidebar-link {% if url_actual == 'panel' %}activo{% endif %}">
+        <span class="sidebar-link-izq">
+            <i class="bi bi-grid-1x2"></i>
+            <span>Panel principal</span>
+        </span>
+    </a>
+
+    {% if request.user.tipo_usuario == 'BIBLIOTECARIO' %}
+        <div class="sidebar-grupo">Acervo</div>
+        <a href="{% url 'lista_libros' %}" class="sidebar-link {% if url_actual == 'lista_libros' or url_actual == 'detalle_libro' %}activo{% endif %}">
+            <span class="sidebar-link-izq">
+                <i class="bi bi-search"></i>
+                <span>Ver catálogo</span>
+            </span>
+        </a>
+        <a href="{% url 'gestionar_libros' %}" class="sidebar-link {% if url_actual == 'gestionar_libros' or url_actual == 'nuevo_libro' or url_actual == 'editar_libro' %}activo{% endif %}">
+            <span class="sidebar-link-izq">
+                <i class="bi bi-bookshelf"></i>
+                <span>Gestionar libros</span>
+            </span>
+        </a>
+        <a href="{% url 'gestion_ejemplares' %}" class="sidebar-link {% if url_actual == 'gestion_ejemplares' or url_actual == 'nuevo_ejemplar' or url_actual == 'editar_ejemplar' %}activo{% endif %}">
+            <span class="sidebar-link-izq">
+                <i class="bi bi-upc-scan"></i>
+                <span>Ejemplares</span>
+            </span>
+        </a>
+        <a href="{% url 'gestion_catalogos' %}" class="sidebar-link {% if url_actual == 'gestion_catalogos' or url_actual == 'nuevo_autor' or url_actual == 'editar_autor' or url_actual == 'nueva_editorial' or url_actual == 'editar_editorial' or url_actual == 'nueva_categoria' or url_actual == 'editar_categoria' %}activo{% endif %}">
+            <span class="sidebar-link-izq">
+                <i class="bi bi-tags"></i>
+                <span>Autores y catálogos</span>
+            </span>
+        </a>
+
+        <div class="sidebar-grupo">Operación</div>
+        <a href="{% url 'gestion_prestamos' %}" class="sidebar-link {% if url_actual == 'gestion_prestamos' %}activo{% endif %}">
+            <span class="sidebar-link-izq">
+                <i class="bi bi-journal-check"></i>
+                <span>Préstamos</span>
+            </span>
+        </a>
+        <a href="{% url 'gestion_reservas' %}" class="sidebar-link {% if url_actual == 'gestion_reservas' %}activo{% endif %}">
+            <span class="sidebar-link-izq">
+                <i class="bi bi-calendar-check"></i>
+                <span>Reservas</span>
+            </span>
+        </a>
+        <a href="{% url 'gestion_multas' %}" class="sidebar-link {% if url_actual == 'gestion_multas' %}activo{% endif %}">
+            <span class="sidebar-link-izq">
+                <i class="bi bi-receipt"></i>
+                <span>Multas y pagos</span>
+            </span>
+        </a>
+        <a href="{% url 'gestion_sugerencias' %}" class="sidebar-link {% if url_actual == 'gestion_sugerencias' %}activo{% endif %}">
+            <span class="sidebar-link-izq">
+                <i class="bi bi-journal-plus"></i>
+                <span>Sugerencias</span>
+            </span>
+        </a>
+
+        <div class="sidebar-grupo">Administración</div>
+        <a href="{% url 'gestion_usuarios' %}" class="sidebar-link {% if url_actual == 'gestion_usuarios' or url_actual == 'nuevo_usuario' or url_actual == 'editar_usuario' or url_actual == 'importar_usuarios' %}activo{% endif %}">
+            <span class="sidebar-link-izq">
+                <i class="bi bi-people"></i>
+                <span>Usuarios</span>
+            </span>
+        </a>
+        <a href="{% url 'configurar_politicas' %}" class="sidebar-link {% if url_actual == 'configurar_politicas' %}activo{% endif %}">
+            <span class="sidebar-link-izq">
+                <i class="bi bi-sliders"></i>
+                <span>Políticas de préstamo</span>
+            </span>
+        </a>
+        <a href="{% url 'reportes' %}" class="sidebar-link {% if url_actual == 'reportes' %}activo{% endif %}">
+            <span class="sidebar-link-izq">
+                <i class="bi bi-bar-chart"></i>
+                <span>Reportes</span>
+            </span>
+        </a>
+        <a href="{% url 'mis_notificaciones' %}" class="sidebar-link {% if url_actual == 'mis_notificaciones' %}activo{% endif %}">
+            <span class="sidebar-link-izq">
+                <i class="bi bi-bell"></i>
+                <span>Notificaciones</span>
+            </span>
+            {% if notificaciones_no_leidas %}
+                <span class="badge rounded-pill bg-danger">{{ notificaciones_no_leidas }}</span>
+            {% endif %}
+        </a>
+
+        {% if request.user.is_staff %}
+            <div class="sidebar-pie">
+                <a href="{% url 'admin:index' %}" class="sidebar-link">
+                    <span class="sidebar-link-izq">
+                        <i class="bi bi-gear"></i>
+                        <span>Django Admin</span>
+                    </span>
+                </a>
+            </div>
+        {% endif %}
+
+    {% elif request.user.tipo_usuario == 'ESTUDIANTE' or request.user.tipo_usuario == 'PROFESOR' %}
+        <div class="sidebar-grupo">Mis servicios</div>
+        <a href="{% url 'lista_libros' %}" class="sidebar-link {% if url_actual == 'lista_libros' or url_actual == 'detalle_libro' %}activo{% endif %}">
+            <span class="sidebar-link-izq">
+                <i class="bi bi-search"></i>
+                <span>Buscar libros</span>
+            </span>
+        </a>
+        <a href="{% url 'mis_prestamos' %}" class="sidebar-link {% if url_actual == 'mis_prestamos' or url_actual == 'renovar_prestamo' %}activo{% endif %}">
+            <span class="sidebar-link-izq">
+                <i class="bi bi-journal-bookmark"></i>
+                <span>Mis préstamos</span>
+            </span>
+        </a>
+        <a href="{% url 'mis_multas' %}" class="sidebar-link {% if url_actual == 'mis_multas' %}activo{% endif %}">
+            <span class="sidebar-link-izq">
+                <i class="bi bi-receipt"></i>
+                <span>Mis multas</span>
+            </span>
+        </a>
+        {% if request.user.tipo_usuario == 'PROFESOR' %}
+            <a href="{% url 'mis_sugerencias' %}" class="sidebar-link {% if url_actual == 'mis_sugerencias' %}activo{% endif %}">
+                <span class="sidebar-link-izq">
+                    <i class="bi bi-plus-circle"></i>
+                    <span>Sugerir un libro</span>
+                </span>
+            </a>
+        {% endif %}
+        <a href="{% url 'mis_notificaciones' %}" class="sidebar-link {% if url_actual == 'mis_notificaciones' %}activo{% endif %}">
+            <span class="sidebar-link-izq">
+                <i class="bi bi-bell"></i>
+                <span>Notificaciones</span>
+            </span>
+            {% if notificaciones_no_leidas %}
+                <span class="badge rounded-pill bg-danger">{{ notificaciones_no_leidas }}</span>
+            {% endif %}
+        </a>
+    {% endif %}
+</nav>
+{% endwith %}
