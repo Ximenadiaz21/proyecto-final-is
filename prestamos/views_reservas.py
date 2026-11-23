@@ -34,15 +34,24 @@ def reservar_libro(request, libro_id):
 
     with transaction.atomic():
         # 3. Solo se puede reservar cuando NO hay ejemplares disponibles (RF-09, CU-06 2a)
-        hay_disponibles = Ejemplar.objects.select_for_update().filter(
-            libro=libro,
-            estado='DISPONIBLE'
-        ).exists()
+        ejemplares_libro = Ejemplar.objects.select_for_update().filter(libro=libro)
+        hay_disponibles = ejemplares_libro.filter(estado='DISPONIBLE').exists()
 
         if hay_disponibles:
             messages.info(
                 request,
                 "Este libro sí tiene ejemplares disponibles. Puedes solicitar el préstamo directamente."
+            )
+            return redirect('detalle_libro', libro_id=libro.id)
+
+        # Verifica que exista al menos un ejemplar en circulación que pueda liberarse (evita reservas imposibles)
+        hay_en_circulacion = ejemplares_libro.filter(
+            estado__in=['PRESTADO', 'RESERVADO', 'EN_REPARACION']
+        ).exists()
+        if not hay_en_circulacion:
+            messages.error(
+                request,
+                "Este título no cuenta con ejemplares activos en circulación para poder reservarlo."
             )
             return redirect('detalle_libro', libro_id=libro.id)
 
@@ -190,6 +199,24 @@ def atender_reserva(request, reserva_id):
 
         if reserva.estado != 'DISPONIBLE' or not reserva.ejemplar_asignado:
             messages.error(request, "Esta reserva no tiene un ejemplar disponible para entregar.")
+            return redirect('gestion_reservas')
+
+        ahora = timezone.now()
+
+        # RN-06: Si ya venció el plazo de recogida, marca la reserva como EXPIRADA y libera/reasigna el ejemplar
+        if reserva.fecha_expiracion and reserva.fecha_expiracion < ahora:
+            ejemplar_exp = Ejemplar.objects.select_for_update().select_related('libro').get(
+                pk=reserva.ejemplar_asignado_id
+            )
+            reserva.estado = 'EXPIRADA'
+            reserva.save(update_fields=['estado'])
+            if ejemplar_exp.estado == 'RESERVADO':
+                liberar_o_asignar_ejemplar(ejemplar_exp, ahora)
+            messages.error(
+                request,
+                f"La reserva #{reserva.id} expiró porque venció su plazo para recoger (RN-06). "
+                "El ejemplar fue liberado o asignado al siguiente usuario en cola."
+            )
             return redirect('gestion_reservas')
 
         lector = reserva.usuario

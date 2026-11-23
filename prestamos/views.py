@@ -25,45 +25,45 @@ from multas.models import Multa
 @login_required
 @require_POST
 def solicitar_prestamo(request, libro_id):
-    libro = get_object_or_404(Libro, id=libro_id, activo=1)
-    usuario = request.user
+    libro = get_object_or_404(Libro, id=libro_id, activo=True)
 
     # 1. Solo estudiantes y profesores pueden pedir libros
-    if usuario.tipo_usuario not in ['ESTUDIANTE', 'PROFESOR']:
+    if request.user.tipo_usuario not in ['ESTUDIANTE', 'PROFESOR']:
         messages.error(request, "Los bibliotecarios no pueden solicitar préstamos.")
         return redirect('lista_libros')
 
-    # 2. Elegibilidad: bloqueo, multas pendientes, préstamos vencidos (CU-07, RN-08)
-    motivo = motivo_inelegible(usuario)
-    if motivo:
-        messages.error(request, motivo)
-        return redirect('lista_libros')
-
-    # 3. Política según el tipo de usuario
-    try:
-        politica = PoliticaPrestamo.objects.get(tipo_usuario=usuario.tipo_usuario)
-    except PoliticaPrestamo.DoesNotExist:
-        messages.error(request, "No hay una política de préstamo configurada para tu tipo de usuario.")
-        return redirect('lista_libros')
-
-    # 4. Límite de libros simultáneos, incluyendo reservas con ejemplar apartado (RN-02)
-    prestamos_activos = libros_en_uso(usuario)
-
-    if prestamos_activos >= politica.max_libros:
-        messages.error(request, f"Has alcanzado el límite máximo de libros permitidos ({politica.max_libros}).")
-        return redirect('lista_libros')
-
-    # 5. Evita repetir el mismo título (RN-11)
-    if Prestamo.objects.filter(
-        usuario=usuario,
-        ejemplar__libro=libro,
-        estado__in=['SOLICITADO', 'ACTIVO', 'VENCIDO']
-    ).exists():
-        messages.error(request, "Ya tienes un préstamo activo o solicitado de este mismo título (RN-11).")
-        return redirect('lista_libros')
-
-    # 6. Transacción atómica para apartar el ejemplar (RNF-03)
+    # 2. Transacción atómica bloqueando al usuario y al ejemplar para evitar condiciones de carrera (RNF-03)
     with transaction.atomic():
+        usuario = Usuario.objects.select_for_update().get(pk=request.user.pk)
+
+        # Elegibilidad: bloqueo, multas pendientes, préstamos vencidos (CU-07, RN-08)
+        motivo = motivo_inelegible(usuario)
+        if motivo:
+            messages.error(request, motivo)
+            return redirect('lista_libros')
+
+        # Política según el tipo de usuario
+        try:
+            politica = PoliticaPrestamo.objects.get(tipo_usuario=usuario.tipo_usuario)
+        except PoliticaPrestamo.DoesNotExist:
+            messages.error(request, "No hay una política de préstamo configurada para tu tipo de usuario.")
+            return redirect('lista_libros')
+
+        # Límite de libros simultáneos, incluyendo reservas con ejemplar apartado (RN-02)
+        prestamos_activos = libros_en_uso(usuario)
+        if prestamos_activos >= politica.max_libros:
+            messages.error(request, f"Has alcanzado el límite máximo de libros permitidos ({politica.max_libros}).")
+            return redirect('lista_libros')
+
+        # Evita repetir el mismo título (RN-11)
+        if Prestamo.objects.filter(
+            usuario=usuario,
+            ejemplar__libro=libro,
+            estado__in=['SOLICITADO', 'ACTIVO', 'VENCIDO']
+        ).exists():
+            messages.error(request, "Ya tienes un préstamo activo o solicitado de este mismo título (RN-11).")
+            return redirect('lista_libros')
+
         ejemplar_disponible = Ejemplar.objects.select_for_update().filter(
             libro=libro,
             estado='DISPONIBLE'
@@ -98,7 +98,7 @@ def solicitar_prestamo(request, libro_id):
                 f"Recoge el ejemplar {ejemplar_disponible.codigo_inventario} antes del "
                 f"{limite_local.strftime('%d/%m/%Y %H:%M')}."
             ),
-            leida=0,
+            leida=False,
             fecha=ahora
         )
 
@@ -237,12 +237,28 @@ def entregar_prestamo(request, prestamo_id):
 
     with transaction.atomic():
         prestamo = get_object_or_404(
-            Prestamo.objects.select_for_update().select_related('ejemplar', 'usuario'),
+            Prestamo.objects.select_for_update().select_related('ejemplar', 'ejemplar__libro', 'usuario'),
             id=prestamo_id
         )
 
         if prestamo.estado != 'SOLICITADO':
             messages.error(request, "Este préstamo ya no está en estado solicitado.")
+            return redirect('gestion_prestamos')
+
+        ahora = timezone.now()
+
+        # RN-06: Si el plazo para recoger ya venció, expira la solicitud y libera/reasigna el ejemplar
+        if prestamo.fecha_limite_recoger and prestamo.fecha_limite_recoger < ahora:
+            prestamo.estado = 'EXPIRADO'
+            prestamo.save(update_fields=['estado'])
+            ejemplar_bloqueado = Ejemplar.objects.select_for_update().select_related('libro').get(pk=prestamo.ejemplar_id)
+            if ejemplar_bloqueado.estado == 'RESERVADO':
+                liberar_o_asignar_ejemplar(ejemplar_bloqueado, ahora)
+            messages.error(
+                request,
+                f"La solicitud #{prestamo.id} expiró porque venció su plazo para recoger (RN-06). "
+                "El ejemplar fue liberado."
+            )
             return redirect('gestion_prestamos')
 
         # Re-verifica elegibilidad al momento de entregar (CU-23 <<include>> CU-07)
@@ -256,8 +272,6 @@ def entregar_prestamo(request, prestamo_id):
         except PoliticaPrestamo.DoesNotExist:
             messages.error(request, "No hay política de préstamo para este tipo de usuario.")
             return redirect('gestion_prestamos')
-
-        ahora = timezone.now()
 
         prestamo.estado = 'ACTIVO'
         prestamo.fecha_prestamo = ahora
@@ -301,9 +315,8 @@ def recibir_devolucion(request, prestamo_id):
         ahora = timezone.now()
         hoy = timezone.localdate()
 
-        # Días de retraso (RN-07)
-        if prestamo.fecha_vencimiento and prestamo.fecha_vencimiento < hoy:
-            dias_retraso = (hoy - prestamo.fecha_vencimiento).days
+        # Reutiliza la lógica del modelo para días de retraso y cálculo de multa (RN-07, RNF-06)
+        dias_retraso = prestamo.dias_retraso(hoy)
 
         if dias_retraso > 0:
             try:
@@ -312,7 +325,7 @@ def recibir_devolucion(request, prestamo_id):
                 messages.error(request, "No hay política de préstamo para calcular la multa. No se registró la devolución.")
                 return redirect('gestion_prestamos')
 
-            monto = min(Decimal(dias_retraso) * politica.multa_por_dia, politica.multa_maxima)
+            monto = prestamo.calcular_multa(politica, hoy)
 
             if monto > 0:
                 multa = Multa.objects.create(
@@ -329,7 +342,7 @@ def recibir_devolucion(request, prestamo_id):
                     usuario=prestamo.usuario,
                     tipo='MULTA',
                     mensaje=f"Se generó una multa de ${monto:.2f} por {dias_retraso} día(s) de retraso en la devolución de \"{prestamo.ejemplar.libro.titulo}\".",
-                    leida=0,
+                    leida=False,
                     fecha=ahora
                 )
 
@@ -378,41 +391,40 @@ def registrar_prestamo_mostrador(request):
         messages.error(request, "Debes indicar el usuario lector y el código de inventario del ejemplar.")
         return redirect('gestion_prestamos')
 
-    # 1. Busca al usuario lector activo
-    lector = Usuario.objects.filter(username=username, is_active=True).first()
-    if not lector:
-        messages.error(request, f"No se encontró un usuario activo con username «{username}».")
-        return redirect('gestion_prestamos')
-
-    if lector.tipo_usuario not in ['ESTUDIANTE', 'PROFESOR']:
-        messages.error(request, "Solo se pueden prestar libros a estudiantes y profesores.")
-        return redirect('gestion_prestamos')
-
-    # 2. Verifica elegibilidad del usuario (CU-07, RN-08)
-    motivo = motivo_inelegible(lector)
-    if motivo:
-        messages.error(request, f"No se puede prestar a {lector.username}: {motivo}")
-        return redirect('gestion_prestamos')
-
-    # 3. Obtiene la política según el tipo de usuario (RN-01, RN-02)
-    try:
-        politica = PoliticaPrestamo.objects.get(tipo_usuario=lector.tipo_usuario)
-    except PoliticaPrestamo.DoesNotExist:
-        messages.error(request, "No hay política de préstamo configurada para este tipo de usuario.")
-        return redirect('gestion_prestamos')
-
-    # 4. Verifica límite de libros simultáneos (RN-02)
-    prestamos_activos = libros_en_uso(lector)
-
-    if prestamos_activos >= politica.max_libros:
-        messages.error(
-            request,
-            f"El usuario {lector.username} alcanzó su límite de libros permitidos ({politica.max_libros}) (RN-02)."
-        )
-        return redirect('gestion_prestamos')
-
-    # 5. Transacción atómica para bloquear el ejemplar y crear el préstamo (RNF-03)
+    # Transacción atómica bloqueando usuario lector y ejemplar para evitar condiciones de carrera (RNF-03)
     with transaction.atomic():
+        # 1. Busca y bloquea al usuario lector activo
+        lector = Usuario.objects.select_for_update().filter(username=username, is_active=True).first()
+        if not lector:
+            messages.error(request, f"No se encontró un usuario activo con username «{username}».")
+            return redirect('gestion_prestamos')
+
+        if lector.tipo_usuario not in ['ESTUDIANTE', 'PROFESOR']:
+            messages.error(request, "Solo se pueden prestar libros a estudiantes y profesores.")
+            return redirect('gestion_prestamos')
+
+        # 2. Verifica elegibilidad del usuario (CU-07, RN-08)
+        motivo = motivo_inelegible(lector)
+        if motivo:
+            messages.error(request, f"No se puede prestar a {lector.username}: {motivo}")
+            return redirect('gestion_prestamos')
+
+        # 3. Obtiene la política según el tipo de usuario (RN-01, RN-02)
+        try:
+            politica = PoliticaPrestamo.objects.get(tipo_usuario=lector.tipo_usuario)
+        except PoliticaPrestamo.DoesNotExist:
+            messages.error(request, "No hay política de préstamo configurada para este tipo de usuario.")
+            return redirect('gestion_prestamos')
+
+        # 4. Verifica límite de libros simultáneos (RN-02)
+        prestamos_activos = libros_en_uso(lector)
+        if prestamos_activos >= politica.max_libros:
+            messages.error(
+                request,
+                f"El usuario {lector.username} alcanzó su límite de libros permitidos ({politica.max_libros}) (RN-02)."
+            )
+            return redirect('gestion_prestamos')
+
         ejemplar = Ejemplar.objects.select_for_update().select_related('libro').filter(
             codigo_inventario=codigo_inventario
         ).first()
@@ -509,8 +521,15 @@ def registrar_incidente_ejemplar(request, prestamo_id):
         hoy = timezone.localdate()
         libro = prestamo.ejemplar.libro
 
-        # RN-13: El monto de la multa por pérdida o daño es el costo de reposición del libro
-        monto_reposicion = libro.costo_reposicion if libro.costo_reposicion > Decimal('0') else Decimal('150.00')
+        # RN-13: El monto de la multa por pérdida o daño es el costo de reposición registrado del libro
+        if libro.costo_reposicion <= Decimal('0'):
+            messages.error(
+                request,
+                f"El libro «{libro.titulo}» no tiene un costo de reposición mayor a $0.00. "
+                "Configúralo en Gestión de libros antes de registrar el incidente (RN-13)."
+            )
+            return redirect('gestion_prestamos')
+        monto_reposicion = libro.costo_reposicion
 
         # Si además se reporta después de la fecha de vencimiento, calcula la multa por retraso (RN-07)
         dias_retraso = prestamo.dias_retraso(hoy)

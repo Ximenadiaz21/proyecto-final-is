@@ -28,12 +28,12 @@ def reportes(request):
     hoy = timezone.localdate()
 
     # 1. Obtiene el rango de fechas para el reporte de préstamos por periodo
-    # Por defecto muestra el semestre del 9 de agosto al 10 de diciembre
+    # Por defecto consulta los últimos 30 días hasta hoy
     inicio_str = request.GET.get('fecha_inicio', '').strip()
     fin_str = request.GET.get('fecha_fin', '').strip()
 
-    fecha_inicio = _parsear_fecha(inicio_str) or date(hoy.year, 8, 9)
-    fecha_fin = _parsear_fecha(fin_str) or date(hoy.year, 12, 10)
+    fecha_fin = _parsear_fecha(fin_str) or hoy
+    fecha_inicio = _parsear_fecha(inicio_str) or (fecha_fin - timedelta(days=30))
 
     # Si el usuario invirtió el orden de las fechas, las intercambia
     if fecha_inicio > fecha_fin:

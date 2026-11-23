@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.mail import send_mail
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q
 from django.utils import timezone
 
@@ -15,7 +15,7 @@ class Usuario(AbstractUser):
     ]
 
     email = models.EmailField(unique=True, max_length=254)
-    tipo_usuario = models.CharField(max_length=15, choices=TIPO_CHOICES, default='BIBLIOTECARIO')
+    tipo_usuario = models.CharField(max_length=15, choices=TIPO_CHOICES, default='ESTUDIANTE')
     telefono = models.CharField(max_length=20, null=True, blank=True)
     bloqueado = models.BooleanField(default=False)
     motivo_bloqueo = models.CharField(max_length=255, null=True, blank=True)
@@ -146,12 +146,12 @@ class Notificacion(models.Model):
             fail_silently=True,
         )
 
-    # Al crear una nueva notificación en la base de datos, dispara el envío por correo (RF-15)
+    # Al crear una nueva notificación, programa el envío de correo tras confirmar la transacción (RF-15, RNF-03)
     def save(self, *args, **kwargs):
         es_nueva = self._state.adding
         super().save(*args, **kwargs)
         if es_nueva:
-            self.enviar_correo()
+            transaction.on_commit(self.enviar_correo)
 
 
 class SugerenciaAdquisicion(models.Model):

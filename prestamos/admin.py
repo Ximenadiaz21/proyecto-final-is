@@ -19,9 +19,6 @@ class PrestamoAdmin(admin.ModelAdmin):
     )
     list_display_links = ('id', 'libro')
 
-    # Permite cambiar la fecha de vencimiento directo desde la lista
-    list_editable = ('fecha_vencimiento',)
-
     list_filter = ('estado',)
     search_fields = (
         'usuario__username', 'usuario__first_name', 'usuario__last_name',
@@ -29,6 +26,15 @@ class PrestamoAdmin(admin.ModelAdmin):
     )
     ordering = ('-id',)
     list_select_related = ('usuario', 'ejemplar', 'ejemplar__libro')
+
+    # RN-16: Los registros de préstamos no se eliminan físicamente
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def get_actions(self, request):
+        acciones = super().get_actions(request)
+        acciones.pop('delete_selected', None)
+        return acciones
 
     @admin.display(description='Libro', ordering='ejemplar__libro__titulo')
     def libro(self, obj):

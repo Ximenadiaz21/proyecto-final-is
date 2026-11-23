@@ -1,10 +1,24 @@
-from django.db.models import Q
+from decimal import Decimal
+from django.db.models import Q, Sum
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from multas.models import Multa
 from .models import Prestamo, Reserva
 
 from datetime import timedelta
+
+
+# Calcula el saldo total pendiente de multas de un usuario (CU-06 excepción 4a)
+def saldo_multas_pendientes(usuario):
+    multas_pendientes = Multa.objects.filter(usuario=usuario, estado='PENDIENTE')
+    total_multas = multas_pendientes.aggregate(
+        t=Coalesce(Sum('monto'), Decimal('0.00'))
+    )['t']
+    total_pagado = multas_pendientes.aggregate(
+        t=Coalesce(Sum('pago__monto'), Decimal('0.00'))
+    )['t']
+    return max(total_multas - total_pagado, Decimal('0.00'))
 
 
 # Cuenta los préstamos en curso y las reservas con ejemplar ya apartado (RN-02)
@@ -28,10 +42,15 @@ def libros_en_uso(usuario, excluir_reserva_id=None):
 # Devuelve el motivo si no puede pedir ni renovar libros, o '' si está al corriente.
 def motivo_inelegible(usuario):
     if usuario.bloqueado:
-        return "Tu cuenta está bloqueada."
+        detalle = f" Motivo: {usuario.motivo_bloqueo}." if usuario.motivo_bloqueo else ""
+        return f"Tu cuenta está bloqueada.{detalle}"
 
     if Multa.objects.filter(usuario=usuario, estado='PENDIENTE').exists():
-        return "Tienes multas pendientes. Págalas primero (RN-08)."
+        saldo = saldo_multas_pendientes(usuario)
+        return (
+            f"Tienes multas pendientes por un saldo de ${saldo:.2f} MXN. "
+            "Págalas primero (RN-08)."
+        )
 
     hoy = timezone.localdate()
     vencidos = Prestamo.objects.filter(usuario=usuario).filter(

@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
@@ -34,7 +35,22 @@ class Multa(models.Model):
                 condition=Q(monto__gt=0),
                 name='chk_multa_monto_positivo',
             ),
+            models.CheckConstraint(
+                condition=(
+                    ~Q(estado='CONDONADA')
+                    | (Q(justificacion_condonacion__isnull=False) & ~Q(justificacion_condonacion=''))
+                ),
+                name='chk_multa_condonacion_justificada',
+            ),
         ]
+
+    # Valida RN-14 incluso desde Django Admin antes de guardar
+    def clean(self):
+        super().clean()
+        if self.estado == 'CONDONADA' and not (self.justificacion_condonacion or '').strip():
+            raise ValidationError({
+                'justificacion_condonacion': 'La justificación es obligatoria para condonar una multa (RN-14).'
+            })
 
 
 class Pago(models.Model):

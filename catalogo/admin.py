@@ -67,9 +67,6 @@ class EjemplarAdmin(admin.ModelAdmin):
     )
     list_display_links = ('id', 'codigo_inventario')
 
-    # Permite cambiar el estado del ejemplar directo desde la lista
-    list_editable = ('estado',)
-
     list_filter = ('estado',)
     search_fields = ('codigo_inventario', 'libro__titulo')
     ordering = ('codigo_inventario',)

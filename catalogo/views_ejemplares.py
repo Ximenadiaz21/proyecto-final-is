@@ -133,7 +133,10 @@ def cambiar_estado_ejemplar(request, ejemplar_id):
         return redirect(destino)
 
     with transaction.atomic():
-        ejemplar = get_object_or_404(Ejemplar.objects.select_for_update(), id=ejemplar_id)
+        ejemplar = get_object_or_404(
+            Ejemplar.objects.select_for_update().select_related('libro'),
+            id=ejemplar_id
+        )
 
         if estado_bloqueado(ejemplar):
             messages.error(
@@ -143,8 +146,20 @@ def cambiar_estado_ejemplar(request, ejemplar_id):
             )
             return redirect(destino)
 
-        ejemplar.estado = nuevo
-        ejemplar.save(update_fields=['estado'])
+        reserva_asignada = None
+        if nuevo == 'DISPONIBLE' and ejemplar.estado != 'DISPONIBLE':
+            from prestamos.reglas import liberar_o_asignar_ejemplar
+            reserva_asignada = liberar_o_asignar_ejemplar(ejemplar)
+        else:
+            ejemplar.estado = nuevo
+            ejemplar.save(update_fields=['estado'])
 
-    messages.success(request, f"Ejemplar {ejemplar.codigo_inventario}: estado cambiado a {nuevo}.")
+    if reserva_asignada:
+        messages.info(
+            request,
+            f"Ejemplar {ejemplar.codigo_inventario} quedó apartado para la reserva "
+            f"#{reserva_asignada.id} de {reserva_asignada.usuario.username} (RN-12)."
+        )
+    else:
+        messages.success(request, f"Ejemplar {ejemplar.codigo_inventario}: estado cambiado a {nuevo}.")
     return redirect(destino)

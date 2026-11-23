@@ -109,14 +109,15 @@ class CuentasYRolesTests(TestCase):
         self.assertEqual(sugerencia.estado, 'APROBADA')
         self.assertTrue(Notificacion.objects.filter(usuario=self.profesor_user).exists())
 
-    # RF-15: Al crear una notificación, el sistema también dispara el envío por correo electrónico
+    # RF-15: Al crear una notificación, el sistema también dispara el envío por correo al confirmar la transacción
     def test_rf15_notificacion_envia_correo(self):
         mail.outbox.clear()
-        Notificacion.objects.create(
-            usuario=self.estudiante,
-            tipo='RESERVA_DISPONIBLE',
-            mensaje='Tu reserva de "Diseño de Bases de Datos" ya está disponible.',
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            Notificacion.objects.create(
+                usuario=self.estudiante,
+                tipo='RESERVA_DISPONIBLE',
+                mensaje='Tu reserva de "Diseño de Bases de Datos" ya está disponible.',
+            )
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn('disponible', mail.outbox[0].subject)
         self.assertEqual(mail.outbox[0].to, [self.estudiante.email])
