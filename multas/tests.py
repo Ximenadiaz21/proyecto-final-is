@@ -140,3 +140,44 @@ class MultasYPagosTests(TestCase):
         self.assertEqual(multa.estado, 'CONDONADA')
         self.assertEqual(multa.condonada_por, self.bibliotecario)
         self.assertEqual(multa.justificacion_condonacion, 'Comprobante médico presentado en dirección.')
+
+    # RN-14, RN-16 y CU-06 (4a): Restricción en BD para condonación, saldo en RN-08 y sin borrado en Admin
+    def test_rn14_y_rn16_restriccion_bd_y_admin_sin_borrado(self):
+        from django.contrib.admin.sites import AdminSite
+        from django.db import IntegrityError, transaction
+        from django.test import RequestFactory
+        from prestamos.admin import PrestamoAdmin
+        from prestamos.reglas import motivo_inelegible
+        from .admin import MultaAdmin, PagoAdmin
+
+        # CheckConstraint de RN-14: impide crear multa CONDONADA sin justificación directo en MySQL
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                Multa.objects.create(
+                    prestamo=self.prestamo,
+                    usuario=self.estudiante,
+                    motivo='RETRASO',
+                    dias_retraso=2,
+                    monto=Decimal('20.00'),
+                    estado='CONDONADA',
+                    justificacion_condonacion='',
+                )
+
+        # CU-06 excepción 4a: motivo_inelegible informa el monto exacto adeudado
+        Multa.objects.create(
+            prestamo=self.prestamo,
+            usuario=self.estudiante,
+            motivo='RETRASO',
+            dias_retraso=5,
+            monto=Decimal('50.00'),
+            estado='PENDIENTE',
+        )
+        self.assertIn('$50.00', motivo_inelegible(self.estudiante))
+
+        # RN-16: Django Admin deshabilita borrado físico para Préstamo, Multa y Pago
+        sitio = AdminSite()
+        req = RequestFactory().get('/admin/')
+        req.user = self.bibliotecario
+        self.assertFalse(PrestamoAdmin(Prestamo, sitio).has_delete_permission(req))
+        self.assertFalse(MultaAdmin(Multa, sitio).has_delete_permission(req))
+        self.assertFalse(PagoAdmin(Pago, sitio).has_delete_permission(req))

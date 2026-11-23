@@ -87,3 +87,51 @@ class CatalogoTests(TestCase):
         self.assertEqual(len(creados), 2)
         self.assertEqual(Ejemplar.objects.filter(libro=self.libro).count(), 4)
 
+    # CU-17: Registro y edición de libro con autor principal y múltiples coautores (libro_autor)
+    def test_cu17_libro_con_multiples_autores(self):
+        coautor = Autor.objects.create(nombre='Steven', apellidos='Morris')
+        self.client.force_login(self.bibliotecario)
+
+        self.client.post(reverse('nuevo_libro'), {
+            'isbn': '9786071500099',
+            'titulo': 'Bases de Datos Avanzadas',
+            'editorial': self.editorial.id,
+            'categoria': self.categoria.id,
+            'idioma': 'Español',
+            'costo_reposicion': '450.00',
+            'autor': self.autor.id,
+            'coautores': [coautor.id],
+        })
+
+        creado = Libro.objects.get(isbn='9786071500099')
+        relaciones = list(LibroAutor.objects.filter(libro=creado).order_by('orden'))
+        self.assertEqual(len(relaciones), 2)
+        self.assertEqual(relaciones[0].autor_id, self.autor.id)
+        self.assertEqual(relaciones[0].orden, 1)
+        self.assertEqual(relaciones[1].autor_id, coautor.id)
+        self.assertEqual(relaciones[1].orden, 2)
+
+    # CU-19 y RF-10: Baja de autor/editorial/categoría protegida si tiene libros y permitida si está libre
+    def test_cu19_eliminar_catalogo_protegido_y_libre(self):
+        autor_libre = Autor.objects.create(nombre='Autor', apellidos='Sin Libros')
+        editorial_libre = Editorial.objects.create(nombre='Editorial Libre')
+        categoria_libre = Categoria.objects.create(nombre='Categoría Libre')
+
+        self.client.force_login(self.bibliotecario)
+
+        # Con libros asociados se protege por integridad referencial (ON DELETE PROTECT)
+        self.client.post(reverse('eliminar_autor', args=[self.autor.id]))
+        self.client.post(reverse('eliminar_editorial', args=[self.editorial.id]))
+        self.client.post(reverse('eliminar_categoria', args=[self.categoria.id]))
+        self.assertTrue(Autor.objects.filter(id=self.autor.id).exists())
+        self.assertTrue(Editorial.objects.filter(id=self.editorial.id).exists())
+        self.assertTrue(Categoria.objects.filter(id=self.categoria.id).exists())
+
+        # Sin libros asociados se dan de baja correctamente
+        self.client.post(reverse('eliminar_autor', args=[autor_libre.id]))
+        self.client.post(reverse('eliminar_editorial', args=[editorial_libre.id]))
+        self.client.post(reverse('eliminar_categoria', args=[categoria_libre.id]))
+        self.assertFalse(Autor.objects.filter(id=autor_libre.id).exists())
+        self.assertFalse(Editorial.objects.filter(id=editorial_libre.id).exists())
+        self.assertFalse(Categoria.objects.filter(id=categoria_libre.id).exists())
+

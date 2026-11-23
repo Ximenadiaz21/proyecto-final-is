@@ -356,3 +356,170 @@ class ReglasNegocioPrestamosTests(TestCase):
         self.assertTrue(
             Notificacion.objects.filter(usuario=self.profesor, tipo='VENCE_PRONTO').exists()
         )
+
+    # RNF-02 y RNF-01: Un lector no puede operar ni ver préstamos de otro lector ni entrar a gestión
+    def test_rnf02_aislamiento_entre_usuarios_prestamos(self):
+        prestamo_solicitado = Prestamo.objects.create(
+            usuario=self.estudiante,
+            ejemplar=self.ejemplares[0],
+            estado='SOLICITADO',
+            fecha_limite_recoger=timezone.now() + timedelta(hours=24),
+        )
+        prestamo_activo = Prestamo.objects.create(
+            usuario=self.estudiante,
+            ejemplar=self.ejemplares[1],
+            estado='ACTIVO',
+            fecha_prestamo=timezone.now(),
+            fecha_vencimiento=timezone.localdate() + timedelta(days=5),
+        )
+
+        self.client.force_login(self.estudiante_dos)
+        # No puede cancelar solicitud ajena ni renovar préstamo ajeno
+        self.assertEqual(
+            self.client.post(reverse('cancelar_solicitud', args=[prestamo_solicitado.id])).status_code,
+            404,
+        )
+        self.assertEqual(
+            self.client.post(reverse('renovar_prestamo', args=[prestamo_activo.id])).status_code,
+            404,
+        )
+        # No puede entrar al panel de gestión de préstamos (403 por @bibliotecario_requerido)
+        self.assertEqual(self.client.get(reverse('gestion_prestamos')).status_code, 403)
+        # En mis_prestamos solo ve sus propios registros (0)
+        respuesta = self.client.get(reverse('mis_prestamos'))
+        self.assertEqual(len(respuesta.context['en_curso']), 0)
+
+    # CU-25 y CU-26: Devolución tardía vía vista genera multa pendiente, notificación y libera ejemplar
+    def test_cu25_cu26_devolucion_tardia_genera_multa_y_notificacion(self):
+        self.ejemplares[0].estado = 'PRESTADO'
+        self.ejemplares[0].save()
+        prestamo = Prestamo.objects.create(
+            usuario=self.estudiante,
+            ejemplar=self.ejemplares[0],
+            estado='VENCIDO',
+            fecha_prestamo=timezone.now() - timedelta(days=11),
+            fecha_vencimiento=timezone.localdate() - timedelta(days=4),
+        )
+
+        self.client.force_login(self.bibliotecario)
+        respuesta = self.client.post(reverse('recibir_devolucion', args=[prestamo.id]))
+
+        prestamo.refresh_from_db()
+        self.ejemplares[0].refresh_from_db()
+        multa = Multa.objects.get(prestamo=prestamo, motivo='RETRASO')
+
+        self.assertEqual(prestamo.estado, 'DEVUELTO')
+        self.assertEqual(prestamo.recibido_por, self.bibliotecario)
+        self.assertEqual(self.ejemplares[0].estado, 'DISPONIBLE')
+        self.assertEqual(multa.dias_retraso, 4)
+        self.assertEqual(multa.monto, Decimal('40.00'))
+        self.assertEqual(multa.estado, 'PENDIENTE')
+        self.assertIn(f'multa_id={multa.id}', respuesta.url)
+        self.assertTrue(
+            Notificacion.objects.filter(usuario=self.estudiante, tipo='MULTA').exists()
+        )
+
+    # RN-06: No se puede entregar una solicitud o reserva cuyo plazo de recogida ya expiró
+    def test_rn06_rechaza_entrega_solicitud_y_reserva_expiradas(self):
+        ahora = timezone.now()
+        self.ejemplares[0].estado = 'RESERVADO'
+        self.ejemplares[0].save()
+        solicitud_vencida = Prestamo.objects.create(
+            usuario=self.estudiante,
+            ejemplar=self.ejemplares[0],
+            estado='SOLICITADO',
+            fecha_solicitud=ahora - timedelta(hours=60),
+            fecha_limite_recoger=ahora - timedelta(hours=12),
+        )
+
+        self.ejemplares[1].estado = 'RESERVADO'
+        self.ejemplares[1].save()
+        reserva_vencida = Reserva.objects.create(
+            usuario=self.estudiante,
+            libro=self.libros[1],
+            ejemplar_asignado=self.ejemplares[1],
+            estado='DISPONIBLE',
+            fecha_reserva=ahora - timedelta(hours=60),
+            fecha_expiracion=ahora - timedelta(hours=5),
+        )
+
+        self.client.force_login(self.bibliotecario)
+        self.client.post(reverse('entregar_prestamo', args=[solicitud_vencida.id]))
+        self.client.post(reverse('atender_reserva', args=[reserva_vencida.id]))
+
+        solicitud_vencida.refresh_from_db()
+        reserva_vencida.refresh_from_db()
+        self.ejemplares[0].refresh_from_db()
+        self.ejemplares[1].refresh_from_db()
+
+        self.assertEqual(solicitud_vencida.estado, 'EXPIRADO')
+        self.assertEqual(self.ejemplares[0].estado, 'DISPONIBLE')
+        self.assertEqual(reserva_vencida.estado, 'EXPIRADA')
+        self.assertEqual(self.ejemplares[1].estado, 'DISPONIBLE')
+
+    # CU-35 + RN-12: Expirar una reserva DISPONIBLE reasigna el ejemplar al siguiente en cola FIFO
+    def test_cu35_expirar_reserva_disponible_reasigna_fifo(self):
+        from django.core.management import call_command
+
+        ahora = timezone.now()
+        self.ejemplares[0].estado = 'RESERVADO'
+        self.ejemplares[0].save()
+
+        reserva_expirada = Reserva.objects.create(
+            usuario=self.estudiante,
+            libro=self.libros[0],
+            ejemplar_asignado=self.ejemplares[0],
+            estado='DISPONIBLE',
+            fecha_reserva=ahora - timedelta(hours=72),
+            fecha_expiracion=ahora - timedelta(hours=1),
+        )
+        reserva_siguiente = Reserva.objects.create(
+            usuario=self.estudiante_dos,
+            libro=self.libros[0],
+            estado='PENDIENTE',
+            fecha_reserva=ahora - timedelta(hours=10),
+        )
+
+        call_command('procesar_vencimientos')
+
+        reserva_expirada.refresh_from_db()
+        reserva_siguiente.refresh_from_db()
+        self.ejemplares[0].refresh_from_db()
+
+        self.assertEqual(reserva_expirada.estado, 'EXPIRADA')
+        self.assertEqual(reserva_siguiente.estado, 'DISPONIBLE')
+        self.assertEqual(reserva_siguiente.ejemplar_asignado, self.ejemplares[0])
+        self.assertEqual(self.ejemplares[0].estado, 'RESERVADO')
+
+    # CU-31 y RF-13: Configuración de políticas de préstamo y validación multa_maxima >= multa_por_dia
+    def test_cu31_configurar_politicas_prestamo(self):
+        self.client.force_login(self.bibliotecario)
+
+        # Rechaza multa máxima menor a multa por día
+        self.client.post(reverse('configurar_politicas'), {
+            'tipo_usuario': 'ESTUDIANTE',
+            'dias_prestamo': '10',
+            'max_libros': '4',
+            'max_renovaciones': '2',
+            'multa_por_dia': '25.00',
+            'multa_maxima': '10.00',
+            'horas_para_recoger': '48',
+        })
+        self.politica_estudiante.refresh_from_db()
+        self.assertEqual(self.politica_estudiante.dias_prestamo, 7)
+
+        # Acepta valores válidos y actualiza sin tocar código
+        self.client.post(reverse('configurar_politicas'), {
+            'tipo_usuario': 'ESTUDIANTE',
+            'dias_prestamo': '10',
+            'max_libros': '4',
+            'max_renovaciones': '2',
+            'multa_por_dia': '15.00',
+            'multa_maxima': '350.00',
+            'horas_para_recoger': '72',
+        })
+        self.politica_estudiante.refresh_from_db()
+        self.assertEqual(self.politica_estudiante.dias_prestamo, 10)
+        self.assertEqual(self.politica_estudiante.max_libros, 4)
+        self.assertEqual(self.politica_estudiante.multa_por_dia, Decimal('15.00'))
+        self.assertEqual(self.politica_estudiante.horas_para_recoger, 72)

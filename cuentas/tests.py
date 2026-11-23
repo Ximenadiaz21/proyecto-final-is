@@ -122,3 +122,69 @@ class CuentasYRolesTests(TestCase):
         self.assertIn('disponible', mail.outbox[0].subject)
         self.assertEqual(mail.outbox[0].to, [self.estudiante.email])
 
+    # CU-21 y RF-11: Importación masiva de usuarios desde CSV (válidos y con error)
+    def test_cu21_importar_usuarios_csv(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        contenido_csv = (
+            "username,nombre,apellidos,correo,tipo,matricula,carrera,semestre,num_empleado,departamento,password\n"
+            "csv_est01,Maria,Lopez,maria.csv@test.mx,ESTUDIANTE,MCSV001,ISC,4,,,Pass12345\n"
+            "csv_prof01,Carlos,Ruiz,carlos.csv@test.mx,PROFESOR,,,,EMPCSV1,Ciencias Computacionales,Pass12345\n"
+            "csv_malo,Sin,Carrera,malo.csv@test.mx,ESTUDIANTE,MCSV002,NOEXISTE,4,,,Pass12345\n"
+        ).encode('utf-8')
+
+        archivo = SimpleUploadedFile('usuarios.csv', contenido_csv, content_type='text/csv')
+        self.client.force_login(self.bibliotecario)
+        respuesta = self.client.post(reverse('importar_usuarios'), {'archivo': archivo})
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta.context['creados'], 2)
+        self.assertEqual(respuesta.context['fallidos'], 1)
+        self.assertTrue(Estudiante.objects.filter(matricula='MCSV001').exists())
+        self.assertTrue(Profesor.objects.filter(num_empleado='EMPCSV1').exists())
+
+    # CU-20: Baja lógica impide desactivar usuario con préstamo activo y permite cuando está libre
+    def test_cu20_baja_logica_usuario_y_bloqueo_con_prestamo_activo(self):
+        from decimal import Decimal
+        from catalogo.models import Categoria, Editorial, Ejemplar, Libro
+        from prestamos.models import Prestamo
+
+        ed = Editorial.objects.create(nombre='Ed Prueba')
+        cat = Categoria.objects.create(nombre='Cat Prueba')
+        libro = Libro.objects.create(
+            isbn='9789999999991', titulo='Libro Test', editorial=ed, categoria=cat,
+            costo_reposicion=Decimal('200.00'), activo=True,
+        )
+        ejemplar = Ejemplar.objects.create(libro=libro, codigo_inventario='EJ-USR-01', estado='PRESTADO')
+        prestamo = Prestamo.objects.create(usuario=self.estudiante, ejemplar=ejemplar, estado='ACTIVO')
+
+        self.client.force_login(self.bibliotecario)
+        # Con préstamo activo NO debe dar de baja
+        self.client.post(reverse('cambiar_estado_usuario', args=[self.estudiante.id]))
+        self.estudiante.refresh_from_db()
+        self.assertTrue(self.estudiante.is_active)
+
+        # Al devolver el préstamo, sí permite dar de baja lógica y luego reactivar
+        prestamo.estado = 'DEVUELTO'
+        prestamo.save()
+        self.client.post(reverse('cambiar_estado_usuario', args=[self.estudiante.id]))
+        self.estudiante.refresh_from_db()
+        self.assertFalse(self.estudiante.is_active)
+
+        self.client.post(reverse('cambiar_estado_usuario', args=[self.estudiante.id]))
+        self.estudiante.refresh_from_db()
+        self.assertTrue(self.estudiante.is_active)
+
+    # RNF-02: Un usuario no puede marcar como leída una notificación que pertenece a otro
+    def test_rnf02_aislamiento_notificaciones(self):
+        notif = Notificacion.objects.create(
+            usuario=self.estudiante,
+            tipo='GENERAL',
+            mensaje='Aviso privado del estudiante.',
+        )
+        self.client.force_login(self.profesor_user)
+        respuesta = self.client.post(reverse('marcar_notificacion_leida', args=[notif.id]))
+        self.assertEqual(respuesta.status_code, 404)
+        notif.refresh_from_db()
+        self.assertFalse(notif.leida)
+
