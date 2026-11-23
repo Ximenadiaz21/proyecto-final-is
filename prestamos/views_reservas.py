@@ -9,7 +9,7 @@ from django.views.decorators.http import require_POST
 
 from catalogo.models import Ejemplar, Libro
 from cuentas.models import Notificacion
-from cuentas.views_usuarios import es_bibliotecario
+from cuentas.views_usuarios import bibliotecario_requerido
 from .models import PoliticaPrestamo, Prestamo, Reserva
 from .reglas import liberar_o_asignar_ejemplar, libros_en_uso, motivo_inelegible
 
@@ -18,7 +18,7 @@ from .reglas import liberar_o_asignar_ejemplar, libros_en_uso, motivo_inelegible
 @login_required
 @require_POST
 def reservar_libro(request, libro_id):
-    libro = get_object_or_404(Libro, id=libro_id, activo=1)
+    libro = get_object_or_404(Libro, id=libro_id, activo=True)
     usuario = request.user
 
     # 1. Solo estudiantes y profesores pueden reservar libros
@@ -145,12 +145,8 @@ def cancelar_reserva(request, reserva_id):
 
 
 # Panel del bibliotecario para consultar y atender las reservas (CU-30)
-@login_required
+@bibliotecario_requerido
 def gestion_reservas(request):
-    if not es_bibliotecario(request.user):
-        messages.error(request, "Esta sección es solo para bibliotecarios.")
-        return redirect('panel')
-
     # Reservas que ya tienen ejemplar apartado esperando a que el lector lo recoja
     disponibles = Reserva.objects.filter(
         estado='DISPONIBLE'
@@ -184,13 +180,9 @@ def gestion_reservas(request):
 
 
 # El bibliotecario entrega el ejemplar apartado de una reserva DISPONIBLE y crea el préstamo ACTIVO (CU-30)
-@login_required
+@bibliotecario_requerido
 @require_POST
 def atender_reserva(request, reserva_id):
-    if not es_bibliotecario(request.user):
-        messages.error(request, "No tienes permiso para atender reservas.")
-        return redirect('panel')
-
     with transaction.atomic():
         reserva = get_object_or_404(
             Reserva.objects.select_for_update().select_related('usuario', 'libro', 'ejemplar_asignado'),
@@ -287,13 +279,9 @@ def atender_reserva(request, reserva_id):
 
 
 # Permite al bibliotecario cancelar una reserva activa y liberar/reasignar su ejemplar (CU-30)
-@login_required
+@bibliotecario_requerido
 @require_POST
 def cancelar_reserva_bibliotecario(request, reserva_id):
-    if not es_bibliotecario(request.user):
-        messages.error(request, "No tienes permiso para cancelar reservas.")
-        return redirect('panel')
-
     with transaction.atomic():
         reserva = get_object_or_404(
             Reserva.objects.select_for_update().select_related('ejemplar_asignado', 'usuario', 'libro'),

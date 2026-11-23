@@ -1,3 +1,4 @@
+import os
 import ssl
 import sys
 
@@ -6,15 +7,17 @@ from django.core.mail.backends.smtp import EmailBackend as DjangoSMTPEmailBacken
 from django.utils.functional import cached_property
 
 
-# Backend SMTP que tolera cambios en el reloj del sistema durante pruebas de vencimientos
-# y respalda en la terminal si la red bloquea el puerto SMTP (CU-03, RF-15).
+# Backend SMTP con validación TLS activa por defecto y respaldo en consola si la red bloquea el puerto (CU-03, RF-15).
 class SMTPEmailBackend(DjangoSMTPEmailBackend):
 
     @cached_property
     def ssl_context(self):
         contexto = ssl.create_default_context()
-        contexto.check_hostname = False
-        contexto.verify_mode = ssl.CERT_NONE
+        # Solo permite omitir verificación de certificado si se activa explícitamente en desarrollo local
+        inseguro = os.environ.get('EMAIL_INSECURE_SSL', 'False').strip().lower() in ('true', '1', 'yes', 'si')
+        if inseguro:
+            contexto.check_hostname = False
+            contexto.verify_mode = ssl.CERT_NONE
         return contexto
 
     def send_messages(self, email_messages):

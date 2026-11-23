@@ -112,7 +112,7 @@ class EjemplarForm(forms.Form):
 
         if libro is None:
             raise forms.ValidationError('No existe un libro con ese ISBN. Regístralo primero en el catálogo.')
-        if libro.activo != 1:
+        if not libro.activo:
             raise forms.ValidationError('Ese libro está dado de baja. Reactívalo antes de agregarle ejemplares.')
 
         self.libro = libro

@@ -1,333 +1,62 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% extends "base.html" %}
 
-    <title>{{ titulo }} | Biblioteca Escolar</title>
-
-    <!-- Carga Bootstrap y los iconos -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-
+{% block extra_css %}
     <style>
-        :root {
-            --azul: #142b43;
-            --azul-secundario: #284b68;
-            --dorado: #c5a16b;
-            --fondo: #f5f6f8;
-            --gris: #6e7b88;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            min-height: 100vh;
-            background-color: var(--fondo);
-            font-family: "Segoe UI", Arial, sans-serif;
-            color: #273747;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* Da formato a la barra superior */
-        .navbar-biblioteca {
-            background-color: var(--azul);
-            padding: 12px 0;
-        }
-
-        .marca {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            color: white;
-            text-decoration: none;
-            font-size: 20px;
-            font-weight: 600;
-        }
-
-        .marca:hover {
-            color: white;
-        }
-
-        .marca i {
-            color: var(--dorado);
-            font-size: 26px;
-        }
-
-        .usuario-navbar {
-            color: #dce3e9;
-            font-size: 13px;
-        }
-
-        .btn-salir {
-            background: transparent;
-            border: 1px solid rgba(255,255,255,0.5);
-            border-radius: 7px;
-            padding: 8px 16px;
-            color: white;
-            font-size: 13px;
-            transition: 0.2s;
-        }
-
-        .btn-salir:hover {
-            background-color: white;
-            color: var(--azul);
-        }
-
-        /* Organiza el contenido principal */
-        .contenido {
-            width: 100%;
-            max-width: 1120px;
-            margin: 25px auto 10px;
-            padding: 0 24px;
-            flex: 1;
-        }
-
-        /* Da formato al mensaje de bienvenida */
-        .etiqueta {
-            color: #9c794b;
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            margin-bottom: 7px;
-        }
-
         .bienvenida h1 {
-            color: var(--azul);
-            font-family: Georgia, "Times New Roman", serif;
-            font-size: 32px;
-            font-weight: 400;
-            margin-bottom: 8px;
+            color: var(--azul); font-family: Georgia, "Times New Roman", serif;
+            font-size: 32px; font-weight: 400; margin-bottom: 8px;
         }
-
-        .bienvenida p {
-            color: var(--gris);
-            font-size: 13px;
-            line-height: 1.5;
-            margin-bottom: 0;
-        }
-
-        .linea-dorada {
-            width: 55px;
-            height: 3px;
-            margin: 13px 0 20px;
-            background-color: var(--dorado);
-        }
-
-        .titulo-seccion {
-            color: var(--azul);
-            font-family: Georgia, "Times New Roman", serif;
-            font-size: 23px;
-            margin-bottom: 15px;
-        }
-
-        /* Da formato a las tarjetas */
-        .tarjetas {
-            --bs-gutter-x: 18px;
-            --bs-gutter-y: 14px;
-        }
-
+        .bienvenida p { color: var(--gris); font-size: 13px; line-height: 1.5; margin-bottom: 0; }
+        .titulo-seccion { font-size: 23px; margin: 0 0 15px; }
+        .tarjetas { --bs-gutter-x: 18px; --bs-gutter-y: 14px; }
         .tarjeta {
-            height: 100%;
-            min-height: 168px;
-            background-color: white;
-            border: 1px solid #e4e8ed;
-            border-radius: 11px;
-            padding: 17px 20px;
-            transition: 0.2s;
+            height: 100%; min-height: 168px; background-color: white;
+            border: 1px solid #e4e8ed; border-radius: 11px; padding: 17px 20px; transition: 0.2s;
         }
-
-        .tarjeta:hover {
-            border-color: #c7d1da;
-            box-shadow: 0 5px 18px rgba(20,43,67,0.06);
-        }
-
+        .tarjeta:hover { border-color: #c7d1da; box-shadow: 0 5px 18px rgba(20,43,67,0.06); }
         .tarjeta-icono {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 38px;
-            height: 38px;
-            background-color: #f7f3ec;
-            border-radius: 8px;
-            margin-bottom: 11px;
-            color: #a47e49;
-            font-size: 19px;
+            display: flex; align-items: center; justify-content: center;
+            width: 38px; height: 38px; background-color: #f7f3ec; border-radius: 8px;
+            margin-bottom: 11px; color: #a47e49; font-size: 19px;
         }
-
-        .tarjeta h3 {
-            color: var(--azul);
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 6px;
-        }
-
-        .tarjeta p {
-            color: var(--gris);
-            font-size: 12px;
-            line-height: 1.5;
-            margin-bottom: 9px;
-        }
-
+        .tarjeta h3 { color: var(--azul); font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+        .tarjeta p { color: var(--gris); font-size: 12px; line-height: 1.5; margin-bottom: 9px; }
         .estado {
-            display: inline-block;
-            padding: 4px 9px;
-            background-color: #f1f3f5;
-            color: #697784;
-            border-radius: 5px;
-            font-size: 11px;
+            display: inline-block; padding: 4px 9px; background-color: #f1f3f5;
+            color: #697784; border-radius: 5px; font-size: 11px;
         }
-
-        /* Da formato a los enlaces */
-        .enlace-admin {
-            display: inline-block;
-            margin-top: 6px;
-            color: var(--azul-secundario);
-            text-decoration: none;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .enlace-admin:hover {
-            text-decoration: underline;
-        }
-
-        /* Da formato al acceso del administrador */
+        .enlace-admin { display: inline-block; margin-top: 6px; }
         .informacion {
-            margin-top: 16px;
-            padding: 14px 20px;
-            background-color: white;
-            border: 1px solid #e4e8ed;
-            border-radius: 10px;
+            margin-top: 16px; padding: 14px 20px; background-color: white;
+            border: 1px solid #e4e8ed; border-radius: 10px;
         }
+        .informacion h4 { color: var(--azul); font-size: 15px; font-weight: 600; margin-bottom: 5px; }
+        .informacion p { color: var(--gris); font-size: 12px; line-height: 1.5; margin-bottom: 0; }
 
-        .informacion h4 {
-            color: var(--azul);
-            font-size: 15px;
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .informacion p {
-            color: var(--gris);
-            font-size: 12px;
-            line-height: 1.5;
-            margin-bottom: 0;
-        }
-
-        /* Da formato al pie de página */
-        .pie-pagina {
-            text-align: center;
-            color: #98a2ad;
-            font-size: 11px;
-            padding: 12px 15px;
-        }
-
-        /* Ajusta la página en pantallas grandes y bajas */
         @media (min-width: 992px) and (max-height: 800px) {
-            .contenido {
-                margin-top: 15px;
-            }
-
-            .tarjeta {
-                min-height: 145px;
-                padding: 13px 17px;
-            }
-
-            .tarjeta-icono {
-                width: 32px;
-                height: 32px;
-                margin-bottom: 7px;
-                font-size: 17px;
-            }
-
-            .tarjeta p {
-                margin-bottom: 5px;
-            }
-
-            .linea-dorada {
-                margin: 10px 0 14px;
-            }
-
-            .titulo-seccion {
-                margin-bottom: 10px;
-            }
+            .contenido { margin-top: 15px; }
+            .tarjeta { min-height: 145px; padding: 13px 17px; }
+            .tarjeta-icono { width: 32px; height: 32px; margin-bottom: 7px; font-size: 17px; }
+            .tarjeta p { margin-bottom: 5px; }
+            .linea-dorada { margin: 10px 0 14px; }
+            .titulo-seccion { margin-bottom: 10px; }
         }
-
-        /* Organiza las tarjetas en tablet */
         @media (max-width: 991px) {
-            .contenido {
-                max-width: 800px;
-            }
-
-            .tarjeta {
-                min-height: 175px;
-            }
+            .contenido { max-width: 800px; }
+            .tarjeta { min-height: 175px; }
         }
-
-        /* Ajusta el contenido en celular */
         @media (max-width: 700px) {
-            .navbar-biblioteca {
-                padding: 12px 0;
-            }
-
-            .marca {
-                font-size: 17px;
-            }
-
-            .marca i {
-                font-size: 22px;
-            }
-
-            .usuario-navbar {
-                display: none;
-            }
-
-            .btn-salir {
-                padding: 7px 11px;
-                font-size: 12px;
-            }
-
-            .contenido {
-                margin: 25px auto;
-                padding: 0 18px;
-            }
-
-            .bienvenida h1 {
-                font-size: 29px;
-            }
-
-            .titulo-seccion {
-                font-size: 22px;
-            }
-
-            .tarjeta {
-                min-height: auto;
-                padding: 20px;
-            }
+            .marca { font-size: 17px; }
+            .marca i { font-size: 22px; }
+            .btn-salir { padding: 7px 11px; font-size: 12px; }
+            .bienvenida h1 { font-size: 29px; }
+            .titulo-seccion { font-size: 22px; }
+            .tarjeta { min-height: auto; padding: 20px; }
         }
     </style>
-</head>
+{% endblock %}
 
-<body>
-
-    <!-- Muestra la barra de navegación -->
-    <nav class="navbar-biblioteca">
-        <div class="container d-flex justify-content-between align-items-center">
-
-            <!-- Muestra el nombre de la biblioteca -->
-            <a href="{% url 'panel' %}" class="marca">
-                <i class="bi bi-book-half"></i>
-                Biblioteca Escolar
-            </a>
-
-            <div class="d-flex align-items-center gap-4">
-
+{% block nav_extra %}
                 <!-- Acceso rápido a notificaciones -->
                 <a href="{% url 'mis_notificaciones' %}" class="usuario-navbar text-decoration-none position-relative" title="Mis notificaciones">
                     <i class="bi bi-bell fs-5"></i>
@@ -337,39 +66,9 @@
                         </span>
                     {% endif %}
                 </a>
+{% endblock %}
 
-                <!-- Muestra el usuario que inició sesión -->
-                <span class="usuario-navbar">
-                    <i class="bi bi-person-circle me-2"></i>
-                    {{ usuario.username }}
-                </span>
-
-                <!-- Cierra la sesión del usuario -->
-                <form method="post" action="{% url 'logout' %}" class="m-0">
-                    {% csrf_token %}
-
-                    <button type="submit" class="btn-salir">
-                        Cerrar sesión
-                    </button>
-                </form>
-            </div>
-
-        </div>
-    </nav>
-
-    <!-- Muestra el contenido principal -->
-    <main class="contenido">
-
-        <!-- Muestra los mensajes del sistema -->
-        {% if messages %}
-            {% for mensaje in messages %}
-                <div class="alert alert-{% if mensaje.tags == 'error' %}danger{% else %}{{ mensaje.tags }}{% endif %} alert-dismissible fade show" role="alert">
-                    {{ mensaje }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
-
+{% block content %}
         <!-- Muestra aviso visible si la cuenta del usuario está bloqueada -->
         {% if usuario.bloqueado %}
             <div class="alert alert-danger d-flex align-items-start gap-2" role="alert">
@@ -870,14 +569,4 @@
             </div>
 
         {% endif %}
-
-    </main>
-
-    <!-- Muestra el pie de página -->
-    <footer class="pie-pagina">
-        © 2026 Biblioteca Escolar · Sistema de Gestión
-    </footer>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+{% endblock %}

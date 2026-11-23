@@ -10,7 +10,7 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from cuentas.views_usuarios import es_bibliotecario
+from cuentas.views_usuarios import bibliotecario_requerido
 from .models import Multa, Pago
 
 METODOS_VALIDOS = ['EFECTIVO', 'TARJETA', 'TRANSFERENCIA']
@@ -67,12 +67,8 @@ def mis_multas(request):
 
 
 # Muestra las multas para que el bibliotecario cobre o condone
-@login_required
+@bibliotecario_requerido
 def gestion_multas(request):
-    if not es_bibliotecario(request.user):
-        messages.error(request, "Esta sección es solo para bibliotecarios.")
-        return redirect('panel')
-
     base = Multa.objects.select_related(
         'usuario', 'prestamo__ejemplar__libro'
     ).annotate(
@@ -98,13 +94,9 @@ def gestion_multas(request):
 
 
 # Registra un pago total o parcial (CU-28)
-@login_required
+@bibliotecario_requerido
 @require_POST
 def registrar_pago(request, multa_id):
-    if not es_bibliotecario(request.user):
-        messages.error(request, "No tienes permiso para registrar pagos.")
-        return redirect('panel')
-
     metodo = request.POST.get('metodo', '')
     if metodo not in METODOS_VALIDOS:
         messages.error(request, "Selecciona un método de pago válido.")
@@ -152,13 +144,9 @@ def registrar_pago(request, multa_id):
 
 
 # Condona una multa con justificación obligatoria (RN-14, CU-29)
-@login_required
+@bibliotecario_requerido
 @require_POST
 def condonar_multa(request, multa_id):
-    if not es_bibliotecario(request.user):
-        messages.error(request, "Solo el bibliotecario puede condonar multas.")
-        return redirect('panel')
-
     justificacion = request.POST.get('justificacion', '').strip()
 
     if not justificacion:

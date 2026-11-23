@@ -13,7 +13,7 @@ from django.utils import timezone
 
 from catalogo.models import Libro, Ejemplar
 from cuentas.models import Notificacion, Usuario
-from cuentas.views_usuarios import es_bibliotecario
+from cuentas.views_usuarios import bibliotecario_requerido
 from .models import PoliticaPrestamo, Prestamo, Reserva
 from .reglas import libros_en_uso, motivo_inelegible, liberar_o_asignar_ejemplar
 from multas.models import Multa
@@ -150,12 +150,8 @@ def mis_prestamos(request):
 
 
 # Muestra las solicitudes por entregar y los libros prestados (con buscador por código de inventario)
-@login_required
+@bibliotecario_requerido
 def gestion_prestamos(request):
-    if not es_bibliotecario(request.user):
-        messages.error(request, "Esta sección es solo para bibliotecarios.")
-        return redirect('panel')
-
     busqueda = request.GET.get('q', '').strip()
     hoy = timezone.localdate()
 
@@ -228,13 +224,9 @@ def gestion_prestamos(request):
 
 
 # Entrega el libro al usuario: SOLICITADO -> ACTIVO (CU-23, incluye CU-07)
-@login_required
+@bibliotecario_requerido
 @require_POST
 def entregar_prestamo(request, prestamo_id):
-    if not es_bibliotecario(request.user):
-        messages.error(request, "No tienes permiso para entregar libros.")
-        return redirect('panel')
-
     with transaction.atomic():
         prestamo = get_object_or_404(
             Prestamo.objects.select_for_update().select_related('ejemplar', 'ejemplar__libro', 'usuario'),
@@ -291,13 +283,9 @@ def entregar_prestamo(request, prestamo_id):
 
 
 # Recibe el libro: ACTIVO/VENCIDO -> DEVUELTO (multa si hay retraso, cola FIFO RN-12)
-@login_required
+@bibliotecario_requerido
 @require_POST
 def recibir_devolucion(request, prestamo_id):
-    if not es_bibliotecario(request.user):
-        messages.error(request, "No tienes permiso para recibir devoluciones.")
-        return redirect('panel')
-
     multa = None
     dias_retraso = 0
     reserva_asignada = None
@@ -376,13 +364,9 @@ def recibir_devolucion(request, prestamo_id):
 
 
 # Registra un préstamo directo en mostrador sin solicitud previa: [*] -> ACTIVO (CU-24)
-@login_required
+@bibliotecario_requerido
 @require_POST
 def registrar_prestamo_mostrador(request):
-    if not es_bibliotecario(request.user):
-        messages.error(request, "No tienes permiso para registrar préstamos en mostrador.")
-        return redirect('panel')
-
     username = request.POST.get('username', '').strip()
     codigo_inventario = request.POST.get('codigo_inventario', '').strip()
     observaciones = request.POST.get('observaciones', '').strip() or None
@@ -491,13 +475,9 @@ def registrar_prestamo_mostrador(request):
 
 
 # Registra la pérdida o el daño de un ejemplar prestado y genera la multa de reposición (CU-27, RN-13)
-@login_required
+@bibliotecario_requerido
 @require_POST
 def registrar_incidente_ejemplar(request, prestamo_id):
-    if not es_bibliotecario(request.user):
-        messages.error(request, "No tienes permiso para registrar incidentes de ejemplares.")
-        return redirect('panel')
-
     motivo = request.POST.get('motivo', '').strip()
     observaciones = request.POST.get('observaciones', '').strip()
 

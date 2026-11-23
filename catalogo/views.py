@@ -1,22 +1,24 @@
 
-from django.shortcuts import render, get_object_or_404
-from django.db.models import Q, Count, Prefetch
+from datetime import timedelta
+
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-
-from django.shortcuts import redirect
-from django.contrib import messages
 from django.db import transaction
-from .forms import LibroForm, AutorForm, EditorialForm, CategoriaForm
-from .models import LibroAutor
+from django.db.models import Count, Prefetch, Q
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
-from .models import Libro, Categoria, LibroAutor, Ejemplar
+from cuentas.views_usuarios import bibliotecario_requerido
+from prestamos.models import PoliticaPrestamo
+from .forms import AutorForm, CategoriaForm, EditorialForm, LibroForm
+from .models import Categoria, Ejemplar, Libro, LibroAutor
 
 
 # Prepara las relaciones de autores para no repetir consultas a MySQL
 def obtener_libros():
     return Libro.objects.filter(
-        activo=1
+        activo=True
     ).select_related(
         'categoria', 'editorial'
     ).prefetch_related(
@@ -84,10 +86,6 @@ def lista_libros(request):
 # Muestra la información completa de un libro seleccionado (CU-05)
 @login_required
 def detalle_libro(request, libro_id):
-    from datetime import timedelta
-    from django.utils import timezone
-    from prestamos.models import PoliticaPrestamo
-
     # Busca el libro solicitado y devuelve 404 si no existe
     libro = get_object_or_404(
         obtener_libros(),
@@ -122,17 +120,9 @@ def detalle_libro(request, libro_id):
     return render(request, 'catalogo/detalle_libro.html', contexto)
 
 
-from django.core.exceptions import PermissionDenied
-
-
 # Permite que el bibliotecario consulte y administre los libros registrados
-@login_required
+@bibliotecario_requerido
 def gestionar_libros(request):
-
-    # Verifica que el usuario tenga permisos de bibliotecario
-    if request.user.tipo_usuario != 'BIBLIOTECARIO' or request.user.bloqueado:
-        raise PermissionDenied
-
     # Obtiene los libros, sus categorías, editoriales y autores
     libros = Libro.objects.select_related(
         'categoria', 'editorial'
@@ -200,13 +190,8 @@ def _destino_catalogo(request):
 
 
 # Permite al bibliotecario registrar un libro nuevo
-@login_required
+@bibliotecario_requerido
 def nuevo_libro(request):
-
-    # Solo los bibliotecarios activos pueden registrar libros
-    if request.user.tipo_usuario != 'BIBLIOTECARIO' or request.user.bloqueado:
-        raise PermissionDenied
-
     # Si se envía el formulario, comprueba y guarda sus datos
     if request.method == 'POST':
         formulario = LibroForm(request.POST)
@@ -247,13 +232,8 @@ def nuevo_libro(request):
 
 
 # Permite al bibliotecario registrar nuevos autores
-@login_required
+@bibliotecario_requerido
 def nuevo_autor(request):
-
-    # Comprueba que el usuario sea un bibliotecario activo
-    if request.user.tipo_usuario != 'BIBLIOTECARIO' or request.user.bloqueado:
-        raise PermissionDenied
-
     destino = _destino_catalogo(request)
 
     # Procesa los datos enviados por el bibliotecario
@@ -284,13 +264,8 @@ def nuevo_autor(request):
 
 
 # Permite al bibliotecario registrar nuevas editoriales
-@login_required
+@bibliotecario_requerido
 def nueva_editorial(request):
-
-    # Comprueba que el usuario sea un bibliotecario activo
-    if request.user.tipo_usuario != 'BIBLIOTECARIO' or request.user.bloqueado:
-        raise PermissionDenied
-
     destino = _destino_catalogo(request)
 
     # Guarda la editorial cuando el formulario es válido
@@ -323,13 +298,8 @@ def nueva_editorial(request):
 
 
 # Permite al bibliotecario registrar nuevas categorías
-@login_required
+@bibliotecario_requerido
 def nueva_categoria(request):
-
-    # Comprueba que el usuario sea un bibliotecario activo
-    if request.user.tipo_usuario != 'BIBLIOTECARIO' or request.user.bloqueado:
-        raise PermissionDenied
-
     destino = _destino_catalogo(request)
 
     # Guarda la categoría cuando el formulario es válido
@@ -362,13 +332,8 @@ def nueva_categoria(request):
 
 
 # Permite al bibliotecario modificar los datos de un libro existente
-@login_required
+@bibliotecario_requerido
 def editar_libro(request, libro_id):
-
-    # Comprueba que el usuario tenga permisos de bibliotecario
-    if request.user.tipo_usuario != 'BIBLIOTECARIO' or request.user.bloqueado:
-        raise PermissionDenied
-
     # Busca el libro que se desea editar
     libro = get_object_or_404(Libro, id=libro_id)
 
@@ -409,13 +374,8 @@ def editar_libro(request, libro_id):
 
 
 # Permite dar de baja o reactivar un libro sin eliminarlo de MySQL
-@login_required
+@bibliotecario_requerido
 def cambiar_estado_libro(request, libro_id):
-
-    # Solo los bibliotecarios activos pueden modificar el catálogo
-    if request.user.tipo_usuario != 'BIBLIOTECARIO' or request.user.bloqueado:
-        raise PermissionDenied
-
     # Busca el libro que se desea modificar
     libro = get_object_or_404(Libro, id=libro_id)
 
@@ -425,10 +385,10 @@ def cambiar_estado_libro(request, libro_id):
 
     # Cambia el estado actual del libro
     if libro.activo:
-        libro.activo = 0
+        libro.activo = False
         mensaje = 'El libro fue dado de baja correctamente.'
     else:
-        libro.activo = 1
+        libro.activo = True
         mensaje = 'El libro fue reactivado correctamente.'
 
     # Guarda únicamente el campo que cambió

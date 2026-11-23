@@ -1,12 +1,12 @@
+from datetime import timedelta
 from decimal import Decimal
+
 from django.db.models import Q, Sum
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from multas.models import Multa
 from .models import Prestamo, Reserva
-
-from datetime import timedelta
 
 
 # Calcula el saldo total pendiente de multas de un usuario (CU-06 excepción 4a)
@@ -144,7 +144,7 @@ def liberar_o_asignar_ejemplar(ejemplar, ahora=None):
             f'Recogela antes del '
             f'{timezone.localtime(reserva.fecha_expiracion):%d/%m/%Y %H:%M}.'
         ),
-        leida=0,
+        leida=False,
         fecha=ahora,
     )
     return reserva

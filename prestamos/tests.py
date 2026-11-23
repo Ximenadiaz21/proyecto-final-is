@@ -268,7 +268,7 @@ class ReglasNegocioPrestamosTests(TestCase):
             usuario=self.estudiante,
             libro=self.libros[0],
             estado='PENDIENTE',
-            fecha_reserva=ahora - timedelta(Hours=2) if hasattr(timedelta, 'Hours') else ahora - timedelta(hours=2),
+            fecha_reserva=ahora - timedelta(hours=2),
         )
         reserva_2 = Reserva.objects.create(
             usuario=self.estudiante_dos,

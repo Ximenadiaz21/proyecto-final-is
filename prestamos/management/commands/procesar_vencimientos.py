@@ -55,7 +55,7 @@ class Command(BaseCommand):
     # Guarda un aviso para el usuario
     def _notificar(self, usuario, tipo, mensaje):
         Notificacion.objects.create(
-            usuario=usuario, tipo=tipo, mensaje=mensaje, leida=0, fecha=self.ahora
+            usuario=usuario, tipo=tipo, mensaje=mensaje, leida=False, fecha=self.ahora
         )
 
     # Libera un ejemplar apartado o lo asigna a la siguiente reserva en cola FIFO (RN-12)
