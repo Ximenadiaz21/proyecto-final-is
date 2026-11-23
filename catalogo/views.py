@@ -62,6 +62,7 @@ def lista_libros(request):
     libros = libros.order_by('titulo', 'id')
     paginador = Paginator(libros, 12)
     pagina = paginador.get_page(request.GET.get('page'))
+    rango_paginas = list(paginador.get_elided_page_range(pagina.number, on_each_side=2, on_ends=1))
 
     # Carga las categorías para mostrarlas en el buscador
     categorias = Categoria.objects.all().order_by('nombre')
@@ -72,6 +73,8 @@ def lista_libros(request):
         'busqueda': busqueda,
         'categoria_seleccionada': categoria_id,
         'pagina': pagina,
+        'rango_paginas': rango_paginas,
+        'ellipsis': paginador.ELLIPSIS,
         'total_libros': paginador.count,
     }
 
@@ -162,15 +165,38 @@ def gestionar_libros(request):
     libros = libros.order_by('titulo', 'id')
     paginador = Paginator(libros, 15)
     pagina = paginador.get_page(request.GET.get('page'))
+    rango_paginas = list(paginador.get_elided_page_range(pagina.number, on_each_side=2, on_ends=1))
 
     contexto = {
         'libros': pagina,
         'pagina': pagina,
+        'rango_paginas': rango_paginas,
+        'ellipsis': paginador.ELLIPSIS,
         'busqueda': busqueda,
         'total_libros': paginador.count,
     }
 
     return render(request, 'catalogo/gestionar_libros.html', contexto)
+
+
+# Sincroniza autor principal y coautores de un libro respetando el orden en libro_autor
+def _guardar_autores_libro(libro, autor_principal, coautores):
+    autores_ordenados = [autor_principal]
+    for coautor in coautores:
+        if coautor.pk != autor_principal.pk and all(a.pk != coautor.pk for a in autores_ordenados):
+            autores_ordenados.append(coautor)
+
+    LibroAutor.objects.filter(libro=libro).delete()
+    for orden, autor in enumerate(autores_ordenados, start=1):
+        LibroAutor.objects.create(libro=libro, autor=autor, orden=orden)
+
+
+# Resuelve a qué pantalla regresar al crear autor, editorial o categoría
+def _destino_catalogo(request):
+    siguiente = request.POST.get('next') or request.GET.get('next') or 'nuevo_libro'
+    if siguiente in ('gestion_catalogos', 'nuevo_libro'):
+        return siguiente
+    return 'nuevo_libro'
 
 
 # Permite al bibliotecario registrar un libro nuevo
@@ -190,16 +216,14 @@ def nuevo_libro(request):
 
                 # Guarda el libro como activo en MySQL
                 libro = formulario.save(commit=False)
-                libro.activo = 1
+                libro.activo = True
                 libro.save()
 
-                # Relaciona el libro con el autor seleccionado
-                autor = formulario.cleaned_data['autor']
-
-                LibroAutor.objects.create(
-                    libro=libro,
-                    autor=autor,
-                    orden=1
+                # Relaciona el libro con su autor principal y sus coautores
+                _guardar_autores_libro(
+                    libro,
+                    formulario.cleaned_data['autor'],
+                    formulario.cleaned_data.get('coautores', []),
                 )
 
             messages.success(
@@ -230,6 +254,8 @@ def nuevo_autor(request):
     if request.user.tipo_usuario != 'BIBLIOTECARIO' or request.user.bloqueado:
         raise PermissionDenied
 
+    destino = _destino_catalogo(request)
+
     # Procesa los datos enviados por el bibliotecario
     if request.method == 'POST':
         formulario = AutorForm(request.POST)
@@ -242,7 +268,7 @@ def nuevo_autor(request):
                 f'El autor {autor.nombre} {autor.apellidos} se registró correctamente.'
             )
 
-            return redirect('nuevo_libro')
+            return redirect(destino)
 
     else:
         formulario = AutorForm()
@@ -251,6 +277,7 @@ def nuevo_autor(request):
         'formulario': formulario,
         'titulo_pagina': 'Registrar nuevo autor',
         'descripcion_pagina': 'Agrega un autor para asociarlo a los libros de la biblioteca.',
+        'url_cancelar': destino,
     }
 
     return render(request, 'catalogo/formulario_autor.html', contexto)
@@ -264,6 +291,8 @@ def nueva_editorial(request):
     if request.user.tipo_usuario != 'BIBLIOTECARIO' or request.user.bloqueado:
         raise PermissionDenied
 
+    destino = _destino_catalogo(request)
+
     # Guarda la editorial cuando el formulario es válido
     if request.method == 'POST':
         formulario = EditorialForm(request.POST)
@@ -276,7 +305,7 @@ def nueva_editorial(request):
                 f'La editorial {editorial.nombre} se registró correctamente.'
             )
 
-            return redirect('nuevo_libro')
+            return redirect(destino)
 
     else:
         formulario = EditorialForm()
@@ -287,6 +316,7 @@ def nueva_editorial(request):
         'descripcion_pagina': 'Agrega una editorial para asociarla a los libros.',
         'titulo_seccion': 'Información de la editorial',
         'texto_boton': 'Guardar editorial',
+        'url_cancelar': destino,
     }
 
     return render(request, 'catalogo/formulario_dato.html', contexto)
@@ -300,6 +330,8 @@ def nueva_categoria(request):
     if request.user.tipo_usuario != 'BIBLIOTECARIO' or request.user.bloqueado:
         raise PermissionDenied
 
+    destino = _destino_catalogo(request)
+
     # Guarda la categoría cuando el formulario es válido
     if request.method == 'POST':
         formulario = CategoriaForm(request.POST)
@@ -312,7 +344,7 @@ def nueva_categoria(request):
                 f'La categoría {categoria.nombre} se registró correctamente.'
             )
 
-            return redirect('nuevo_libro')
+            return redirect(destino)
 
     else:
         formulario = CategoriaForm()
@@ -323,6 +355,7 @@ def nueva_categoria(request):
         'descripcion_pagina': 'Agrega una categoría para organizar los libros.',
         'titulo_seccion': 'Información de la categoría',
         'texto_boton': 'Guardar categoría',
+        'url_cancelar': destino,
     }
 
     return render(request, 'catalogo/formulario_dato.html', contexto)
@@ -348,23 +381,12 @@ def editar_libro(request, libro_id):
                 # Actualiza los datos bibliográficos del libro
                 libro = formulario.save()
 
-                # Obtiene el autor seleccionado
-                autor = formulario.cleaned_data['autor']
-
-                # Actualiza la relación del autor principal
-                relacion = LibroAutor.objects.filter(
-                    libro=libro
-                ).order_by('orden', 'id').first()
-
-                if relacion:
-                    relacion.autor = autor
-                    relacion.save()
-                else:
-                    LibroAutor.objects.create(
-                        libro=libro,
-                        autor=autor,
-                        orden=1
-                    )
+                # Actualiza autor principal y coautores
+                _guardar_autores_libro(
+                    libro,
+                    formulario.cleaned_data['autor'],
+                    formulario.cleaned_data.get('coautores', []),
+                )
 
             messages.success(
                 request,

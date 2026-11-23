@@ -647,13 +647,12 @@
                                 {% if request.user.tipo_usuario == 'ESTUDIANTE' or request.user.tipo_usuario == 'PROFESOR' %}
 
                                     {% if libro.disponibles > 0 %}
-                                        <form method="post" action="{% url 'solicitar_prestamo' libro.id %}" class="m-0">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn-prestamo">
-                                                <i class="bi bi-bookmark-plus"></i>
-                                                Solicitar préstamo
-                                            </button>
-                                        </form>
+                                        <!-- Dirige al detalle abriendo el resumen de confirmación (CU-06 pasos 5 y 6) -->
+                                        <a href="{% url 'detalle_libro' libro.id %}?solicitar=1"
+                                           class="btn-prestamo text-decoration-none">
+                                            <i class="bi bi-bookmark-plus"></i>
+                                            Solicitar préstamo
+                                        </a>
                                     {% else %}
                                         <!-- Si no hay ejemplares disponibles, permite reservar (CU-11) -->
                                         <form method="post" action="{% url 'reservar_libro' libro.id %}" class="m-0">
@@ -718,13 +717,19 @@
                             </li>
                         {% endif %}
 
-                        {% for numero in pagina.paginator.page_range %}
-                            <li class="page-item {% if pagina.number == numero %}active{% endif %}">
-                                <a class="page-link"
-                                   href="?q={{ busqueda|urlencode }}&categoria={{ categoria_seleccionada }}&page={{ numero }}">
-                                    {{ numero }}
-                                </a>
-                            </li>
+                        {% for numero in rango_paginas %}
+                            {% if numero == ellipsis %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">&hellip;</span>
+                                </li>
+                            {% else %}
+                                <li class="page-item {% if pagina.number == numero %}active{% endif %}">
+                                    <a class="page-link"
+                                       href="?q={{ busqueda|urlencode }}&categoria={{ categoria_seleccionada }}&page={{ numero }}">
+                                        {{ numero }}
+                                    </a>
+                                </li>
+                            {% endif %}
                         {% endfor %}
 
                         {% if pagina.has_next %}

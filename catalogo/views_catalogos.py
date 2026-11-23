@@ -1,6 +1,7 @@
 from django.contrib import messages
-from django.db.models import Count, Q
+from django.db.models import Count, ProtectedError, Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
 from cuentas.views_usuarios import bibliotecario_requerido
 from .forms import AutorForm, CategoriaForm, EditorialForm
@@ -139,3 +140,54 @@ def editar_categoria(request, categoria_id):
     }
 
     return render(request, 'catalogo/formulario_dato.html', contexto)
+
+
+# Permite al bibliotecario dar de baja un autor sin libros asociados (CU-19, RF-10)
+@bibliotecario_requerido
+@require_POST
+def eliminar_autor(request, autor_id):
+    autor = get_object_or_404(Autor, id=autor_id)
+    nombre = f"{autor.nombre} {autor.apellidos}"
+    try:
+        autor.delete()
+        messages.success(request, f"El autor {nombre} fue dado de baja correctamente.")
+    except ProtectedError:
+        messages.error(
+            request,
+            f"No se puede dar de baja al autor {nombre} porque tiene libros asociados."
+        )
+    return redirect('gestion_catalogos')
+
+
+# Permite al bibliotecario dar de baja una editorial sin libros asociados (CU-19, RF-10)
+@bibliotecario_requerido
+@require_POST
+def eliminar_editorial(request, editorial_id):
+    editorial = get_object_or_404(Editorial, id=editorial_id)
+    nombre = editorial.nombre
+    try:
+        editorial.delete()
+        messages.success(request, f"La editorial {nombre} fue dada de baja correctamente.")
+    except ProtectedError:
+        messages.error(
+            request,
+            f"No se puede dar de baja la editorial {nombre} porque tiene libros asociados."
+        )
+    return redirect('gestion_catalogos')
+
+
+# Permite al bibliotecario dar de baja una categoría sin libros asociados (CU-19, RF-10)
+@bibliotecario_requerido
+@require_POST
+def eliminar_categoria(request, categoria_id):
+    categoria = get_object_or_404(Categoria, id=categoria_id)
+    nombre = categoria.nombre
+    try:
+        categoria.delete()
+        messages.success(request, f"La categoría {nombre} fue dada de baja correctamente.")
+    except ProtectedError:
+        messages.error(
+            request,
+            f"No se puede dar de baja la categoría {nombre} porque tiene libros asociados."
+        )
+    return redirect('gestion_catalogos')

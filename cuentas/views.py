@@ -1,6 +1,7 @@
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
@@ -48,21 +49,19 @@ def mis_notificaciones(request):
     # Obtiene el usuario que tiene la sesión activa
     usuario = request.user
 
-    # Consulta todas las notificaciones del usuario ordenadas de la más reciente a la más antigua
-    notificaciones = list(
-        Notificacion.objects.filter(usuario=usuario).order_by('-fecha', '-id')
+    # Consulta notificaciones no leídas y pagina el historial de leídas (RNF-05)
+    no_leidas = list(
+        Notificacion.objects.filter(usuario=usuario, leida=False).order_by('-fecha', '-id')
     )
-
-    # Separa las notificaciones nuevas (no leídas) del historial de leídas
-    no_leidas = [n for n in notificaciones if not n.leida]
-    leidas = [n for n in notificaciones if n.leida]
+    leidas_qs = Notificacion.objects.filter(usuario=usuario, leida=True).order_by('-fecha', '-id')
+    leidas_pagina = Paginator(leidas_qs, 10).get_page(request.GET.get('page'))
 
     # Prepara el contexto para enviar a la plantilla HTML
     contexto = {
         'usuario': usuario,
         'titulo': 'Mis notificaciones',
         'no_leidas': no_leidas,
-        'leidas': leidas,
+        'leidas': leidas_pagina,
         'total_no_leidas': len(no_leidas),
     }
 

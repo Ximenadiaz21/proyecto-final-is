@@ -8,13 +8,25 @@ from .models import Libro, Autor, Editorial, Categoria
 # Formulario para registrar y editar los libros de la biblioteca
 class LibroForm(forms.ModelForm):
 
-    # Permite seleccionar un autor registrado en la base de datos
+    # Permite seleccionar el autor principal registrado en la base de datos
     autor = forms.ModelChoiceField(
         queryset=Autor.objects.all().order_by('apellidos', 'nombre'),
-        label='Autor',
+        label='Autor principal',
         empty_label='Seleccionar autor',
         widget=forms.Select(attrs={
             'class': 'form-select'
+        })
+    )
+
+    # Permite asociar coautores adicionales usando la relación libro_autor (M2M)
+    coautores = forms.ModelMultipleChoiceField(
+        queryset=Autor.objects.all().order_by('apellidos', 'nombre'),
+        label='Coautores (opcional)',
+        required=False,
+        help_text='Mantén presionada la tecla Ctrl (o Cmd) para seleccionar varios coautores.',
+        widget=forms.SelectMultiple(attrs={
+            'class': 'form-select',
+            'size': '4',
         })
     )
 
@@ -106,10 +118,10 @@ class LibroForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Muestra los nombres completos de los autores
-        self.fields['autor'].label_from_instance = (
-            lambda autor: f'{autor.nombre} {autor.apellidos}'
-        )
+        # Muestra los nombres completos de los autores y coautores
+        etiqueta_autor = lambda autor: f'{autor.nombre} {autor.apellidos}'
+        self.fields['autor'].label_from_instance = etiqueta_autor
+        self.fields['coautores'].label_from_instance = etiqueta_autor
 
         # Ordena las editoriales y categorías alfabéticamente
         self.fields['editorial'].queryset = Editorial.objects.order_by('nombre')
@@ -127,12 +139,13 @@ class LibroForm(forms.ModelForm):
         )
 
 
-        # Cuando se edita un libro, selecciona su primer autor registrado
+        # Cuando se edita un libro, carga su autor principal y sus coautores
         if self.instance and self.instance.pk:
-            relacion = self.instance.libroautor_set.order_by('orden').first()
+            relaciones = list(self.instance.libroautor_set.order_by('orden', 'id'))
 
-            if relacion:
-                self.fields['autor'].initial = relacion.autor
+            if relaciones:
+                self.fields['autor'].initial = relaciones[0].autor
+                self.fields['coautores'].initial = [r.autor_id for r in relaciones[1:]]
 
     def clean_isbn(self):
 

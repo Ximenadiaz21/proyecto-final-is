@@ -370,6 +370,20 @@
             {% endfor %}
         {% endif %}
 
+        <!-- Muestra aviso visible si la cuenta del usuario está bloqueada -->
+        {% if usuario.bloqueado %}
+            <div class="alert alert-danger d-flex align-items-start gap-2" role="alert">
+                <i class="bi bi-shield-exclamation fs-5"></i>
+                <div>
+                    <strong>Tu cuenta se encuentra bloqueada.</strong>
+                    {% if usuario.motivo_bloqueo %}
+                        Motivo: {{ usuario.motivo_bloqueo }}.
+                    {% endif %}
+                    No podrás solicitar, renovar ni reservar libros hasta regularizar tu situación en biblioteca.
+                </div>
+            </div>
+        {% endif %}
+
         <!-- Muestra la bienvenida según el usuario -->
         <section class="bienvenida">
 
@@ -433,6 +447,12 @@
                         <!-- Abre el catálogo de libros -->
                         <a href="{% url 'lista_libros' %}" class="enlace-admin">
                             Ver catálogo
+                            <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
+                        <br>
+                        <!-- Alta, edición y baja lógica de libros (CU-17) -->
+                        <a href="{% url 'gestionar_libros' %}" class="enlace-admin">
+                            Gestionar libros
                             <i class="bi bi-arrow-right ms-1"></i>
                         </a>
                         <br>
@@ -608,8 +628,8 @@
                     <h4>Administración del sistema</h4>
 
                     <p>
-                        Mientras desarrollamos las funciones del panel,
-                        puedes gestionar los registros desde Django Admin.
+                        Accede al panel administrativo de Django para la
+                        consulta y administración avanzada de registros.
                     </p>
 
                     <a href="{% url 'admin:index' %}" class="enlace-admin">

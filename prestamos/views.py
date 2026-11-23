@@ -4,8 +4,11 @@ from decimal import Decimal
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.paginator import Paginator
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from catalogo.models import Libro, Ejemplar
@@ -124,7 +127,8 @@ def mis_prestamos(request):
 
     estados_en_curso = ['SOLICITADO', 'ACTIVO', 'VENCIDO']
     en_curso = [p for p in prestamos if p.estado in estados_en_curso]
-    historial = [p for p in prestamos if p.estado not in estados_en_curso]
+    historial_lista = [p for p in prestamos if p.estado not in estados_en_curso]
+    historial = Paginator(historial_lista, 10).get_page(request.GET.get('page'))
 
     # Obtiene las reservas activas del usuario (PENDIENTE o DISPONIBLE para recoger)
     reservas_activas = Reserva.objects.filter(
@@ -145,12 +149,15 @@ def mis_prestamos(request):
     return render(request, 'prestamos/mis_prestamos.html', contexto)
 
 
-# Muestra las solicitudes por entregar y los libros prestados
+# Muestra las solicitudes por entregar y los libros prestados (con buscador por código de inventario)
 @login_required
 def gestion_prestamos(request):
     if not es_bibliotecario(request.user):
         messages.error(request, "Esta sección es solo para bibliotecarios.")
         return redirect('panel')
+
+    busqueda = request.GET.get('q', '').strip()
+    hoy = timezone.localdate()
 
     por_entregar = Prestamo.objects.filter(
         estado='SOLICITADO'
@@ -158,11 +165,39 @@ def gestion_prestamos(request):
         'usuario', 'ejemplar', 'ejemplar__libro'
     ).order_by('fecha_solicitud')
 
-    prestados = Prestamo.objects.filter(
+    prestados_qs = Prestamo.objects.filter(
         estado__in=['ACTIVO', 'VENCIDO']
     ).select_related(
         'usuario', 'ejemplar', 'ejemplar__libro'
-    ).order_by('fecha_vencimiento')
+    ).order_by('fecha_vencimiento', 'id')
+
+    # Autocompletado de códigos de ejemplares actualmente prestados (CU-25 paso 2)
+    codigos_prestados = list(
+        prestados_qs.values_list('ejemplar__codigo_inventario', 'ejemplar__libro__titulo', 'usuario__username')
+    )
+
+    if busqueda:
+        filtro = (
+            Q(ejemplar__codigo_inventario__icontains=busqueda) |
+            Q(usuario__username__icontains=busqueda) |
+            Q(usuario__first_name__icontains=busqueda) |
+            Q(usuario__last_name__icontains=busqueda) |
+            Q(ejemplar__libro__titulo__icontains=busqueda)
+        )
+        por_entregar = por_entregar.filter(filtro)
+        prestados_qs = prestados_qs.filter(filtro)
+
+    prestados = Paginator(prestados_qs, 15).get_page(request.GET.get('page'))
+    for p in prestados:
+        p.retraso_actual = p.dias_retraso(hoy)
+
+    # Si acaba de generarse una multa al devolver, muestra acceso directo a cobro (CU-25 flujo 5a)
+    multa_generada = None
+    multa_id = request.GET.get('multa_id', '').strip()
+    if multa_id.isdigit():
+        multa_generada = Multa.objects.select_related(
+            'usuario', 'prestamo__ejemplar__libro'
+        ).filter(id=int(multa_id), estado='PENDIENTE').first()
 
     # Listas para facilitar el registro de préstamos directos en mostrador (CU-24)
     lectores = Usuario.objects.filter(
@@ -181,9 +216,12 @@ def gestion_prestamos(request):
         'titulo': 'Gestión de préstamos',
         'por_entregar': por_entregar,
         'prestados': prestados,
+        'busqueda': busqueda,
+        'codigos_prestados': codigos_prestados,
+        'multa_generada': multa_generada,
         'lectores': lectores,
         'ejemplares_disponibles': ejemplares_disponibles,
-        'hoy': timezone.localdate(),
+        'hoy': hoy,
     }
 
     return render(request, 'prestamos/gestion_prestamos.html', contexto)
@@ -317,6 +355,9 @@ def recibir_devolucion(request, prestamo_id):
             request,
             f"El ejemplar quedó apartado para {reserva_asignada.usuario.username} (reserva #{reserva_asignada.id})."
         )
+
+    if multa:
+        return redirect(f"{reverse('gestion_prestamos')}?multa_id={multa.id}")
 
     return redirect('gestion_prestamos')
 

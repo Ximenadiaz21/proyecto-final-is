@@ -602,6 +602,17 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function () {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('solicitar') === '1') {
+                const modalEl = document.getElementById('modalConfirmarSolicitud');
+                if (modalEl && window.bootstrap) {
+                    new bootstrap.Modal(modalEl).show();
+                }
+            }
+        })();
+    </script>
 
 </body>
 </html>

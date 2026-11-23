@@ -66,8 +66,10 @@ def gestion_usuarios(request):
 
     if estado == 'bloqueados':
         usuarios = usuarios.filter(bloqueado=True)
+    elif estado == 'inactivos':
+        usuarios = usuarios.filter(is_active=False)
     elif estado == 'activos':
-        usuarios = usuarios.filter(bloqueado=False)
+        usuarios = usuarios.filter(bloqueado=False, is_active=True)
 
     pagina = Paginator(usuarios, 15).get_page(request.GET.get('page'))
 
@@ -174,6 +176,41 @@ def cambiar_bloqueo(request, usuario_id):
     objetivo.motivo_bloqueo = motivo
     objetivo.save(update_fields=['bloqueado', 'motivo_bloqueo'])
     messages.success(request, f"Usuario {objetivo.username} bloqueado.")
+    return redirect('gestion_usuarios')
+
+
+# Da de baja lógica (is_active=False) o reactiva una cuenta de usuario (CU-20, RF-11)
+@bibliotecario_requerido
+@require_POST
+def cambiar_estado_usuario(request, usuario_id):
+    from prestamos.models import Prestamo
+
+    objetivo = get_object_or_404(Usuario, id=usuario_id)
+
+    if objetivo.pk == request.user.pk:
+        messages.error(request, "No puedes dar de baja tu propia cuenta.")
+        return redirect('gestion_usuarios')
+
+    if objetivo.is_active:
+        tiene_prestamos = Prestamo.objects.filter(
+            usuario=objetivo,
+            estado__in=['ACTIVO', 'VENCIDO'],
+        ).exists()
+        if tiene_prestamos:
+            messages.error(
+                request,
+                f"No se puede dar de baja a {objetivo.username} porque tiene préstamos activos o vencidos."
+            )
+            return redirect('gestion_usuarios')
+
+        objetivo.is_active = False
+        objetivo.save(update_fields=['is_active'])
+        messages.success(request, f"Usuario {objetivo.username} dado de baja (inactivo).")
+    else:
+        objetivo.is_active = True
+        objetivo.save(update_fields=['is_active'])
+        messages.success(request, f"Usuario {objetivo.username} reactivado correctamente.")
+
     return redirect('gestion_usuarios')
 
 

@@ -273,6 +273,22 @@
             <div class="vacio">Todavía no tienes historial de préstamos.</div>
         {% endfor %}
 
+        {% if historial.has_other_pages %}
+            <nav class="d-flex justify-content-center align-items-center gap-3 my-3">
+                {% if historial.has_previous %}
+                    <a class="enlace-admin" href="?page={{ historial.previous_page_number }}">
+                        <i class="bi bi-chevron-left"></i> Anterior
+                    </a>
+                {% endif %}
+                <span class="detalle">Página {{ historial.number }} de {{ historial.paginator.num_pages }}</span>
+                {% if historial.has_next %}
+                    <a class="enlace-admin" href="?page={{ historial.next_page_number }}">
+                        Siguiente <i class="bi bi-chevron-right"></i>
+                    </a>
+                {% endif %}
+            </nav>
+        {% endif %}
+
     </main>
 
     <footer class="pie-pagina">

@@ -251,7 +251,7 @@
                 <h2 class="titulo-seccion">
                     <i class="bi bi-person-lines-fill me-2"></i>Autores ({{ autores|length }})
                 </h2>
-                <a href="{% url 'nuevo_autor' %}" class="btn-accion">
+                <a href="{% url 'nuevo_autor' %}?next=gestion_catalogos" class="btn-accion">
                     <i class="bi bi-plus-lg"></i> Nuevo autor
                 </a>
             </div>
@@ -273,9 +273,19 @@
                                 <td>{{ a.nacionalidad|default:"—" }}</td>
                                 <td><span class="badge-conteo">{{ a.total_libros }} libro{{ a.total_libros|pluralize }}</span></td>
                                 <td class="text-end">
-                                    <a href="{% url 'editar_autor' a.id %}" class="btn-borde">
-                                        <i class="bi bi-pencil"></i> Editar
-                                    </a>
+                                    <div class="d-inline-flex gap-1">
+                                        <a href="{% url 'editar_autor' a.id %}" class="btn-borde">
+                                            <i class="bi bi-pencil"></i> Editar
+                                        </a>
+                                        <form method="post" action="{% url 'eliminar_autor' a.id %}" class="m-0"
+                                              onsubmit="return confirm('¿Dar de baja al autor {{ a.nombre|escapejs }} {{ a.apellidos|escapejs }}?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn-borde text-danger"
+                                                    {% if a.total_libros > 0 %}disabled title="Tiene libros asociados"{% endif %}>
+                                                <i class="bi bi-trash"></i> Baja
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         {% empty %}
@@ -297,7 +307,7 @@
                         <h2 class="titulo-seccion">
                             <i class="bi bi-building me-2"></i>Editoriales ({{ editoriales|length }})
                         </h2>
-                        <a href="{% url 'nueva_editorial' %}" class="btn-accion">
+                        <a href="{% url 'nueva_editorial' %}?next=gestion_catalogos" class="btn-accion">
                             <i class="bi bi-plus-lg"></i> Nueva editorial
                         </a>
                     </div>
@@ -319,9 +329,19 @@
                                         <td>{{ e.pais|default:"—" }}</td>
                                         <td><span class="badge-conteo">{{ e.total_libros }}</span></td>
                                         <td class="text-end">
-                                            <a href="{% url 'editar_editorial' e.id %}" class="btn-borde">
-                                                <i class="bi bi-pencil"></i> Editar
-                                            </a>
+                                            <div class="d-inline-flex gap-1">
+                                                <a href="{% url 'editar_editorial' e.id %}" class="btn-borde">
+                                                    <i class="bi bi-pencil"></i> Editar
+                                                </a>
+                                                <form method="post" action="{% url 'eliminar_editorial' e.id %}" class="m-0"
+                                                      onsubmit="return confirm('¿Dar de baja la editorial {{ e.nombre|escapejs }}?');">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn-borde text-danger"
+                                                            {% if e.total_libros > 0 %}disabled title="Tiene libros asociados"{% endif %}>
+                                                        <i class="bi bi-trash"></i> Baja
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </td>
                                     </tr>
                                 {% empty %}
@@ -342,7 +362,7 @@
                         <h2 class="titulo-seccion">
                             <i class="bi bi-tags me-2"></i>Categorías ({{ categorias|length }})
                         </h2>
-                        <a href="{% url 'nueva_categoria' %}" class="btn-accion">
+                        <a href="{% url 'nueva_categoria' %}?next=gestion_catalogos" class="btn-accion">
                             <i class="bi bi-plus-lg"></i> Nueva categoría
                         </a>
                     </div>
@@ -364,9 +384,19 @@
                                         <td class="text-muted small">{{ c.descripcion|default:"—" }}</td>
                                         <td><span class="badge-conteo">{{ c.total_libros }}</span></td>
                                         <td class="text-end">
-                                            <a href="{% url 'editar_categoria' c.id %}" class="btn-borde">
-                                                <i class="bi bi-pencil"></i> Editar
-                                            </a>
+                                            <div class="d-inline-flex gap-1">
+                                                <a href="{% url 'editar_categoria' c.id %}" class="btn-borde">
+                                                    <i class="bi bi-pencil"></i> Editar
+                                                </a>
+                                                <form method="post" action="{% url 'eliminar_categoria' c.id %}" class="m-0"
+                                                      onsubmit="return confirm('¿Dar de baja la categoría {{ c.nombre|escapejs }}?');">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn-borde text-danger"
+                                                            {% if c.total_libros > 0 %}disabled title="Tiene libros asociados"{% endif %}>
+                                                        <i class="bi bi-trash"></i> Baja
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </td>
                                     </tr>
                                 {% empty %}

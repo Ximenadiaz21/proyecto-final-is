@@ -538,13 +538,19 @@
                         </li>
                     {% endif %}
 
-                    {% for numero in pagina.paginator.page_range %}
-                        <li class="page-item {% if pagina.number == numero %}active{% endif %}">
-                            <a class="page-link"
-                               href="?q={{ busqueda|urlencode }}&page={{ numero }}">
-                                {{ numero }}
-                            </a>
-                        </li>
+                    {% for numero in rango_paginas %}
+                        {% if numero == ellipsis %}
+                            <li class="page-item disabled">
+                                <span class="page-link">&hellip;</span>
+                            </li>
+                        {% else %}
+                            <li class="page-item {% if pagina.number == numero %}active{% endif %}">
+                                <a class="page-link"
+                                   href="?q={{ busqueda|urlencode }}&page={{ numero }}">
+                                    {{ numero }}
+                                </a>
+                            </li>
+                        {% endif %}
                     {% endfor %}
 
                     {% if pagina.has_next %}

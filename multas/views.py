@@ -3,6 +3,7 @@ from decimal import Decimal, InvalidOperation
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Sum
 from django.db.models.functions import Coalesce
@@ -50,7 +51,8 @@ def mis_multas(request):
     )
 
     pendientes = [m for m in multas if m.estado == 'PENDIENTE']
-    historial = [m for m in multas if m.estado != 'PENDIENTE']
+    historial_lista = [m for m in multas if m.estado != 'PENDIENTE']
+    historial = Paginator(historial_lista, 10).get_page(request.GET.get('page'))
     total_adeudado = sum((m.saldo for m in pendientes), Decimal('0'))
 
     contexto = {
@@ -78,13 +80,17 @@ def gestion_multas(request):
     )
 
     pendientes = con_saldos(base.filter(estado='PENDIENTE').order_by('fecha_generacion'))
-    historial = con_saldos(base.exclude(estado='PENDIENTE').order_by('-fecha_generacion')[:20])
+    historial_pagina = Paginator(
+        base.exclude(estado='PENDIENTE').order_by('-fecha_generacion', '-id'),
+        15
+    ).get_page(request.GET.get('page'))
+    historial_pagina.object_list = con_saldos(historial_pagina.object_list)
 
     contexto = {
         'usuario': request.user,
         'titulo': 'Multas y pagos',
         'pendientes': pendientes,
-        'historial': historial,
+        'historial': historial_pagina,
         'total_pendiente': sum((m.saldo for m in pendientes), Decimal('0')),
     }
 
