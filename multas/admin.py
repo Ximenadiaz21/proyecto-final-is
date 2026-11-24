@@ -16,6 +16,8 @@ class MultaAdmin(admin.ModelAdmin):
     )
     ordering = ('-id',)
     list_select_related = ('usuario', 'prestamo__ejemplar__libro')
+    # El estado se gestiona con los servicios de pago/condonación (RN-14)
+    readonly_fields = ('estado',)
 
     @admin.display(description='Libro')
     def libro(self, obj):

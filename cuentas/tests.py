@@ -299,6 +299,7 @@ class CuentasYRolesTests(TestCase):
         if grupo:
             self.assertTrue(self.bibliotecario.groups.filter(name=GRUPO_BIBLIOTECARIOS).exists())
             self.assertFalse(grupo.permissions.filter(codename='delete_prestamo').exists())
+            self.assertFalse(grupo.permissions.filter(codename='delete_reserva').exists())
 
         superusuario = Usuario.objects.create_superuser(
             username='admin_root',
@@ -312,6 +313,34 @@ class CuentasYRolesTests(TestCase):
         resp_panel = self.client.get(reverse('panel'))
         self.assertEqual(resp_panel.status_code, 200)
         self.assertEqual(resp_panel.context['titulo'], 'Panel del bibliotecario')
+
+    # Admin / Seguridad: Bibliotecario no puede auto-promoverse a superusuario ni alterar superusuarios
+    def test_usuario_admin_bloquea_escalacion_privilegios(self):
+        from django.contrib.admin.sites import AdminSite
+        from django.test import RequestFactory
+        from .admin import UsuarioAdmin
+
+        superusuario = Usuario.objects.create_superuser(
+            username='root_admin',
+            password='password123',
+            email='root_admin@test.mx',
+            tipo_usuario='BIBLIOTECARIO',
+        )
+        admin_usr = UsuarioAdmin(Usuario, AdminSite())
+
+        req_biblio = RequestFactory().get('/admin/')
+        req_biblio.user = self.bibliotecario
+        readonly_biblio = admin_usr.get_readonly_fields(req_biblio, self.bibliotecario)
+        for campo in ('is_superuser', 'is_staff', 'groups', 'user_permissions'):
+            self.assertIn(campo, readonly_biblio)
+        self.assertFalse(admin_usr.has_change_permission(req_biblio, superusuario))
+        self.assertFalse(admin_usr.has_delete_permission(req_biblio, superusuario))
+
+        req_super = RequestFactory().get('/admin/')
+        req_super.user = superusuario
+        readonly_super = admin_usr.get_readonly_fields(req_super, self.bibliotecario)
+        self.assertNotIn('is_superuser', readonly_super)
+        self.assertTrue(admin_usr.has_change_permission(req_super, superusuario))
 
 
 

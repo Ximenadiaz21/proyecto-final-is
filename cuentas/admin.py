@@ -20,6 +20,23 @@ class UsuarioAdmin(UserAdmin):
     )
     list_filter = ('tipo_usuario', 'bloqueado', 'is_active', 'is_staff')
 
+    # Evita escalación de privilegios en /admin/ por parte de bibliotecarios no superusuarios
+    def get_readonly_fields(self, request, obj=None):
+        campos = super().get_readonly_fields(request, obj)
+        if not request.user.is_superuser:
+            return (*campos, 'is_superuser', 'is_staff', 'groups', 'user_permissions')
+        return campos
+
+    def has_change_permission(self, request, obj=None):
+        if obj is not None and obj.is_superuser and not request.user.is_superuser:
+            return False
+        return super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        if obj is not None and obj.is_superuser and not request.user.is_superuser:
+            return False
+        return super().has_delete_permission(request, obj)
+
 
 @admin.register(Estudiante)
 class EstudianteAdmin(admin.ModelAdmin):

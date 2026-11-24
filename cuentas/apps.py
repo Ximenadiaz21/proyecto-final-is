@@ -2,8 +2,8 @@ from django.apps import AppConfig
 from django.db.models.signals import post_migrate
 
 APPS_BIBLIOTECA = ('cuentas', 'catalogo', 'prestamos', 'multas')
-# RN-16: los registros históricos de préstamos, multas y pagos no se eliminan
-PERMISOS_PROTEGIDOS = ('delete_prestamo', 'delete_multa', 'delete_pago')
+# RN-16: los registros históricos de préstamos, reservas, multas y pagos no se eliminan
+PERMISOS_PROTEGIDOS = ('delete_prestamo', 'delete_reserva', 'delete_multa', 'delete_pago')
 
 
 # Crea o actualiza el grupo «Bibliotecarios» con permisos de administración tras cada migrate

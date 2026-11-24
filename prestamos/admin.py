@@ -26,6 +26,13 @@ class PrestamoAdmin(admin.ModelAdmin):
     )
     ordering = ('-id',)
     list_select_related = ('usuario', 'ejemplar', 'ejemplar__libro')
+    # El estado se controla desde la capa de servicios para mantener sincronizado al ejemplar
+    readonly_fields = ('estado',)
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj is None:
+            return ()
+        return self.readonly_fields
 
     # RN-16: Los registros de préstamos no se eliminan físicamente
     def has_delete_permission(self, request, obj=None):
@@ -52,3 +59,13 @@ class ReservaAdmin(admin.ModelAdmin):
     search_fields = ('usuario__username', 'libro__titulo')
     ordering = ('-id',)
     list_select_related = ('usuario', 'libro')
+    readonly_fields = ('estado',)
+
+    # Conserva el historial de reservas y evita alterar la cola FIFO desde el admin
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def get_actions(self, request):
+        acciones = super().get_actions(request)
+        acciones.pop('delete_selected', None)
+        return acciones

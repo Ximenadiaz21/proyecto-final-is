@@ -219,13 +219,28 @@ class MultasYPagosTests(TestCase):
         )
         self.assertIn('$50.00', motivo_inelegible(self.estudiante))
 
-        # RN-16: Django Admin deshabilita borrado físico para Préstamo, Multa y Pago
+        # RN-16: Django Admin deshabilita borrado físico y protege el campo estado
+        from prestamos.admin import ReservaAdmin
+        from prestamos.models import Reserva
+
         sitio = AdminSite()
         req = RequestFactory().get('/admin/')
         req.user = self.bibliotecario
-        self.assertFalse(PrestamoAdmin(Prestamo, sitio).has_delete_permission(req))
-        self.assertFalse(MultaAdmin(Multa, sitio).has_delete_permission(req))
-        self.assertFalse(PagoAdmin(Pago, sitio).has_delete_permission(req))
+        prestamo_admin = PrestamoAdmin(Prestamo, sitio)
+        reserva_admin = ReservaAdmin(Reserva, sitio)
+        multa_admin = MultaAdmin(Multa, sitio)
+        pago_admin = PagoAdmin(Pago, sitio)
+
+        self.assertFalse(prestamo_admin.has_delete_permission(req))
+        self.assertFalse(reserva_admin.has_delete_permission(req))
+        self.assertFalse(multa_admin.has_delete_permission(req))
+        self.assertFalse(pago_admin.has_delete_permission(req))
+        self.assertNotIn('delete_selected', reserva_admin.get_actions(req))
+
+        self.assertIn('estado', prestamo_admin.get_readonly_fields(req, self.prestamo))
+        self.assertNotIn('estado', prestamo_admin.get_readonly_fields(req, None))
+        self.assertIn('estado', reserva_admin.get_readonly_fields(req))
+        self.assertIn('estado', multa_admin.get_readonly_fields(req))
 
     # RNF-06 / RN-14: Servicios de multas validan rol, saldo y métodos del modelo sin capa HTTP
     def test_servicio_multas_saldo_y_defensa_rol_rn14(self):
