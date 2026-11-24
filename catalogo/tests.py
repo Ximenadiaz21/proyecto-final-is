@@ -217,4 +217,19 @@ class CatalogoTests(TestCase):
         self.libro.refresh_from_db()
         self.assertFalse(self.libro.activo)
 
+    # Esquema BD: el modelo Libro valida el formato de ISBN (10 o 13 dígitos sin guiones) incluso fuera de formularios
+    def test_modelo_libro_valida_formato_isbn(self):
+        from django.core.exceptions import ValidationError
+
+        libro_invalido = Libro(
+            isbn='ISBN-MALO',
+            titulo='Libro con ISBN inválido',
+            editorial=self.editorial,
+            categoria=self.categoria,
+            costo_reposicion=Decimal('100.00'),
+        )
+        with self.assertRaises(ValidationError):
+            libro_invalido.full_clean()
+
+
 

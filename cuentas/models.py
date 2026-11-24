@@ -15,7 +15,7 @@ class Usuario(AbstractUser):
     ]
 
     email = models.EmailField(unique=True, max_length=254)
-    tipo_usuario = models.CharField(max_length=15, choices=TIPO_CHOICES, default='ESTUDIANTE')
+    tipo_usuario = models.CharField(max_length=15, choices=TIPO_CHOICES, default='ESTUDIANTE', db_index=True)
     telefono = models.CharField(max_length=20, null=True, blank=True)
     bloqueado = models.BooleanField(default=False)
     motivo_bloqueo = models.CharField(max_length=255, null=True, blank=True)
@@ -113,6 +113,9 @@ class Notificacion(models.Model):
     class Meta:
         db_table = 'notificacion'
         ordering = ['-fecha']
+        indexes = [
+            models.Index(fields=['usuario', 'leida'], name='idx_notificacion_usuario_leida'),
+        ]
         constraints = [
             models.CheckConstraint(
                 condition=Q(tipo__in=['VENCE_PRONTO', 'VENCIDO', 'RESERVA_DISPONIBLE', 'MULTA', 'GENERAL']),

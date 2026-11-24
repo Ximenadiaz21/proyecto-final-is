@@ -1,11 +1,18 @@
+from django.core.validators import RegexValidator
 from django.db import models
 from django.db.models import Q
+
+
+validador_isbn = RegexValidator(
+    regex=r'^\d{10}(\d{3})?$',
+    message='El ISBN debe contener 10 o 13 dígitos sin guiones.',
+)
 
 
 class Autor(models.Model):
     id = models.BigAutoField(primary_key=True)
     nombre = models.CharField(max_length=100)
-    apellidos = models.CharField(max_length=150)
+    apellidos = models.CharField(max_length=150, db_index=True)
     nacionalidad = models.CharField(max_length=60, blank=True, null=True)
 
     class Meta:
@@ -41,7 +48,7 @@ class Editorial(models.Model):
 
 class Libro(models.Model):
     id = models.BigAutoField(primary_key=True)
-    isbn = models.CharField(unique=True, max_length=13)
+    isbn = models.CharField(unique=True, max_length=13, validators=[validador_isbn])
     titulo = models.CharField(max_length=255, db_index=True)
     subtitulo = models.CharField(max_length=255, blank=True, null=True)
     editorial = models.ForeignKey(Editorial, models.PROTECT)

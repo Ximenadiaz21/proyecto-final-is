@@ -614,3 +614,25 @@ class ReglasNegocioPrestamosTests(TestCase):
         self.assertTrue(
             Prestamo.objects.filter(usuario=self.estudiante, ejemplar=self.ejemplares[0], estado='ACTIVO').exists()
         )
+
+    # Esquema BD: Reserva ordena en FIFO por defecto y PoliticaPrestamo actualiza actualizado_en automáticamente
+    def test_esquema_reserva_ordering_fifo_y_politica_auto_now(self):
+        ahora = timezone.now()
+        r_tarde = Reserva.objects.create(
+            usuario=self.estudiante_dos,
+            libro=self.libros[0],
+            estado='PENDIENTE',
+            fecha_reserva=ahora,
+        )
+        r_temprano = Reserva.objects.create(
+            usuario=self.estudiante,
+            libro=self.libros[0],
+            estado='PENDIENTE',
+            fecha_reserva=ahora - timedelta(hours=3),
+        )
+        ordenadas = list(Reserva.objects.filter(libro=self.libros[0]))
+        self.assertEqual([r.id for r in ordenadas], [r_temprano.id, r_tarde.id])
+
+        # Verifica que actualizado_en usa auto_now=True
+        campo = PoliticaPrestamo._meta.get_field('actualizado_en')
+        self.assertTrue(campo.auto_now)

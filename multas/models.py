@@ -22,6 +22,9 @@ class Multa(models.Model):
     class Meta:
         db_table = 'multa'
         db_table_comment = 'Multa por retraso, daño o pérdida de un ejemplar'
+        indexes = [
+            models.Index(fields=['usuario', 'estado'], name='idx_multa_usuario_estado'),
+        ]
         constraints = [
             models.CheckConstraint(
                 condition=Q(motivo__in=['RETRASO', 'DANIO', 'PERDIDA']),

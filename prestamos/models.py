@@ -14,7 +14,7 @@ class PoliticaPrestamo(models.Model):
     multa_por_dia = models.DecimalField(max_digits=8, decimal_places=2)
     multa_maxima = models.DecimalField(max_digits=8, decimal_places=2)
     horas_para_recoger = models.PositiveSmallIntegerField()
-    actualizado_en = models.DateTimeField(default=timezone.now)
+    actualizado_en = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'politica_prestamo'
@@ -101,6 +101,10 @@ class Reserva(models.Model):
     class Meta:
         db_table = 'reserva'
         db_table_comment = 'Reserva de un título sin ejemplares disponibles (cola FIFO)'
+        ordering = ['fecha_reserva', 'id']
+        indexes = [
+            models.Index(fields=['libro', 'fecha_reserva'], name='idx_reserva_libro_fecha'),
+        ]
         constraints = [
             models.CheckConstraint(
                 condition=Q(estado__in=['PENDIENTE', 'DISPONIBLE', 'ATENDIDA', 'CANCELADA', 'EXPIRADA']),
