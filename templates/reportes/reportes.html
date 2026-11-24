@@ -39,7 +39,8 @@
                 <a href="{% url 'exportar_reporte_csv' 'vencidos' %}" class="btn-borde">
                     <i class="bi bi-filetype-csv me-1"></i> CSV Vencidos
                 </a>
-                <a href="{% url 'exportar_reporte_csv' 'multas' %}" class="btn-borde">
+                <a href="{% url 'exportar_reporte_csv' 'multas' %}?fecha_inicio={{ fecha_inicio }}&fecha_fin={{ fecha_fin }}"
+                   class="btn-borde">
                     <i class="bi bi-filetype-csv me-1"></i> CSV Multas
                 </a>
                 <button type="button" onclick="window.print()" class="btn-borde">
@@ -243,9 +244,9 @@
         <div class="row g-3 mb-3">
             <div class="col-md-4">
                 <div class="metrica">
-                    <div class="etiqueta-metrica">Total cobrado en caja</div>
+                    <div class="etiqueta-metrica">Total cobrado en el periodo</div>
                     <div class="valor-metrica" style="color: #1f7a45;">${{ total_cobrado|floatformat:2 }} MXN</div>
-                    <div class="sub-metrica">{{ multas_pagadas_count }} multa(s) liquidada(s) en total</div>
+                    <div class="sub-metrica">{{ fecha_inicio_obj|date:"d/m/Y" }} al {{ fecha_fin_obj|date:"d/m/Y" }} · {{ multas_pagadas_count }} multa(s) liquidada(s)</div>
                 </div>
             </div>
             <div class="col-md-4">
@@ -300,7 +301,7 @@
 
             <div class="col-lg-6">
                 <div class="caja h-100">
-                    <h3 class="h6 fw-bold mb-3" style="color: var(--azul);">Últimos pagos cobrados</h3>
+                    <h3 class="h6 fw-bold mb-3" style="color: var(--azul);">Pagos cobrados en el periodo</h3>
                     <div class="tabla-wrap">
                         <table class="tabla">
                             <thead>

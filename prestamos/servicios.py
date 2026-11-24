@@ -81,10 +81,11 @@ def solicitar_prestamo(usuario_id, libro):
             "Ya tienes un préstamo activo o solicitado de este mismo título (RN-11)."
         )
 
-    # 6. Bloquea y selecciona el primer ejemplar DISPONIBLE para evitar doble asignación (RNF-03)
+    # 6. Bloquea y selecciona el primer ejemplar DISPONIBLE con skip_locked (RNF-03)
     ejemplar = (
-        Ejemplar.objects.select_for_update()
+        Ejemplar.objects.select_for_update(skip_locked=True)
         .filter(libro=libro, estado='DISPONIBLE')
+        .order_by('id')
         .first()
     )
     if not ejemplar:
@@ -673,3 +674,182 @@ def atender_reserva(reserva_id, bibliotecario):
     reserva.save(update_fields=['estado'])
 
     return prestamo, reserva, False
+
+
+# ==============================================================================
+# Procesos programados del reloj del sistema (CU-34, CU-35, CU-36, RF-17)
+# ==============================================================================
+
+
+# Libera un ejemplar apartado o lo reasigna a la siguiente reserva en cola FIFO (RN-12)
+def _liberar_ejemplar_apartado(ejemplar_id, ahora):
+    if not ejemplar_id:
+        return None
+    ejemplar = Ejemplar.objects.select_for_update().select_related('libro').get(pk=ejemplar_id)
+    if ejemplar.estado == 'RESERVADO':
+        return liberar_o_asignar_ejemplar(ejemplar, ahora)
+    return None
+
+
+# CU-34: Marca préstamos ACTIVO con fecha_vencimiento anterior a hoy como VENCIDO
+def marcar_prestamos_vencidos(hoy=None, ahora=None, simular=False):
+    hoy = hoy or timezone.localdate()
+    ahora = ahora or timezone.now()
+
+    ids = list(
+        Prestamo.objects.filter(
+            estado='ACTIVO',
+            fecha_vencimiento__lt=hoy,
+        ).values_list('id', flat=True)
+    )
+    if simular:
+        return len(ids)
+
+    total = 0
+    for prestamo_id in ids:
+        with transaction.atomic():
+            prestamo = (
+                Prestamo.objects.select_for_update()
+                .select_related('usuario', 'ejemplar__libro')
+                .get(pk=prestamo_id)
+            )
+            if prestamo.estado != 'ACTIVO':
+                continue
+
+            prestamo.estado = 'VENCIDO'
+            prestamo.save(update_fields=['estado'])
+
+            notificar(
+                usuario=prestamo.usuario,
+                tipo=Notificacion.Tipo.VENCIDO,
+                mensaje=(
+                    f"Tu préstamo de «{prestamo.ejemplar.libro.titulo}» venció el "
+                    f"{prestamo.fecha_vencimiento:%d/%m/%Y}. "
+                    "Devuélvelo lo antes posible para evitar más multa."
+                ),
+                fecha=ahora,
+            )
+            total += 1
+
+    return total
+
+
+# CU-35: Expira solicitudes no recogidas en el plazo (RN-06) y libera/reasigna ejemplares (RN-12)
+def expirar_solicitudes(ahora=None, simular=False):
+    ahora = ahora or timezone.now()
+
+    ids = list(
+        Prestamo.objects.filter(
+            estado='SOLICITADO',
+            fecha_limite_recoger__lt=ahora,
+        ).values_list('id', flat=True)
+    )
+    if simular:
+        return len(ids)
+
+    total = 0
+    for prestamo_id in ids:
+        with transaction.atomic():
+            prestamo = (
+                Prestamo.objects.select_for_update()
+                .select_related('usuario', 'ejemplar__libro')
+                .get(pk=prestamo_id)
+            )
+            if prestamo.estado != 'SOLICITADO':
+                continue
+
+            prestamo.estado = 'EXPIRADO'
+            prestamo.save(update_fields=['estado'])
+            _liberar_ejemplar_apartado(prestamo.ejemplar_id, ahora)
+
+            notificar(
+                usuario=prestamo.usuario,
+                tipo=Notificacion.Tipo.GENERAL,
+                mensaje=(
+                    f"Tu solicitud de «{prestamo.ejemplar.libro.titulo}» expiró porque no se "
+                    "recogió a tiempo. Puedes solicitarlo de nuevo si sigue disponible."
+                ),
+                fecha=ahora,
+            )
+            total += 1
+
+    return total
+
+
+# CU-35: Expira reservas DISPONIBLE no atendidas en el plazo (RN-06) y pasa el ejemplar en cola FIFO
+def expirar_reservas(ahora=None, simular=False):
+    ahora = ahora or timezone.now()
+
+    ids = list(
+        Reserva.objects.filter(
+            estado='DISPONIBLE',
+            fecha_expiracion__lt=ahora,
+        ).values_list('id', flat=True)
+    )
+    if simular:
+        return len(ids)
+
+    total = 0
+    for reserva_id in ids:
+        with transaction.atomic():
+            reserva = (
+                Reserva.objects.select_for_update()
+                .select_related('usuario', 'libro')
+                .get(pk=reserva_id)
+            )
+            if reserva.estado != 'DISPONIBLE':
+                continue
+
+            reserva.estado = 'EXPIRADA'
+            reserva.save(update_fields=['estado'])
+            _liberar_ejemplar_apartado(reserva.ejemplar_asignado_id, ahora)
+
+            notificar(
+                usuario=reserva.usuario,
+                tipo=Notificacion.Tipo.GENERAL,
+                mensaje=(
+                    f"Tu reserva de «{reserva.libro.titulo}» expiró porque no se recogió a tiempo."
+                ),
+                fecha=ahora,
+            )
+            total += 1
+
+    return total
+
+
+# CU-36: Envía recordatorios de vencimiento próximo sin duplicar avisos ya enviados
+def enviar_recordatorios(dias_aviso=2, hoy=None, ahora=None, simular=False):
+    hoy = hoy or timezone.localdate()
+    ahora = ahora or timezone.now()
+    limite = hoy + timedelta(days=dias_aviso)
+
+    prestamos = Prestamo.objects.filter(
+        estado='ACTIVO',
+        fecha_vencimiento__gte=hoy,
+        fecha_vencimiento__lte=limite,
+    ).select_related('usuario', 'ejemplar__libro')
+
+    total = 0
+    for prestamo in prestamos:
+        mensaje = (
+            f"Tu préstamo de «{prestamo.ejemplar.libro.titulo}» vence el "
+            f"{prestamo.fecha_vencimiento:%d/%m/%Y}. Devuélvelo a tiempo para evitar multas."
+        )
+        ya_avisado = Notificacion.objects.filter(
+            usuario=prestamo.usuario,
+            tipo=Notificacion.Tipo.VENCE_PRONTO,
+            mensaje=mensaje,
+        ).exists()
+        if ya_avisado:
+            continue
+
+        if not simular:
+            notificar(
+                usuario=prestamo.usuario,
+                tipo=Notificacion.Tipo.VENCE_PRONTO,
+                mensaje=mensaje,
+                fecha=ahora,
+            )
+        total += 1
+
+    return total

@@ -231,5 +231,37 @@ class CatalogoTests(TestCase):
         with self.assertRaises(ValidationError):
             libro_invalido.full_clean()
 
+    # CU-04 y CU-17: Búsqueda por ISBN con guiones, filtro solo disponibles y ejemplares pasan a BAJA
+    def test_cu04_busqueda_isbn_guiones_disponibles_y_ejemplares_baja(self):
+        libro_agotado = Libro.objects.create(
+            isbn='9786071500002',
+            titulo='Libro Agotado',
+            editorial=self.editorial,
+            categoria=self.categoria,
+            costo_reposicion=Decimal('150.00'),
+            activo=True,
+        )
+        Ejemplar.objects.create(
+            libro=libro_agotado,
+            codigo_inventario='EJ-AGO-01',
+            estado='PRESTADO',
+        )
+
+        self.client.force_login(self.estudiante)
+        # ISBN con guiones encuentra el libro guardado sin guiones
+        resp_isbn = self.client.get(reverse('lista_libros'), {'q': '978-607-150000-1'})
+        self.assertEqual([l.id for l in resp_isbn.context['libros']], [self.libro.id])
+
+        # Filtro solo disponibles excluye libros sin copias DISPONIBLE
+        resp_disp = self.client.get(reverse('lista_libros'), {'disponibles': '1'})
+        ids_disp = [l.id for l in resp_disp.context['libros']]
+        self.assertIn(self.libro.id, ids_disp)
+        self.assertNotIn(libro_agotado.id, ids_disp)
+
+        # Dar de baja lógica al libro pasa sus ejemplares DISPONIBLE a BAJA
+        self.client.force_login(self.bibliotecario)
+        self.client.post(reverse('cambiar_estado_libro', args=[self.libro.id]))
+        self.assertEqual(Ejemplar.objects.get(codigo_inventario='EJ-CAT-01').estado, 'BAJA')
+
 
 

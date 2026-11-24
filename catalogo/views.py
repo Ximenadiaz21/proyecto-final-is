@@ -10,7 +10,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from cuentas.views_usuarios import bibliotecario_requerido
+from cuentas.permisos import bibliotecario_requerido
 from prestamos.models import PoliticaPrestamo, Prestamo, Reserva
 from prestamos.reglas import libros_en_uso, motivo_inelegible
 from .forms import AutorForm, CategoriaForm, EditorialForm, LibroForm
@@ -44,14 +44,17 @@ def lista_libros(request):
     # Obtiene los valores escritos en el formulario
     busqueda = request.GET.get('q', '').strip()
     categoria_id = request.GET.get('categoria', '')
+    solo_disponibles = request.GET.get('disponibles') == '1'
 
     libros = obtener_libros()
 
-    # Busca coincidencias en los datos del libro y de sus autores
+    # Busca coincidencias en los datos del libro y de sus autores (acepta ISBN con guiones)
     if busqueda:
+        isbn_limpio = busqueda.replace('-', '').replace(' ', '')
         libros = libros.filter(
             Q(titulo__icontains=busqueda) |
-            Q(isbn__icontains=busqueda) |
+            Q(subtitulo__icontains=busqueda) |
+            Q(isbn__icontains=isbn_limpio) |
             Q(editorial__nombre__icontains=busqueda) |
             Q(categoria__nombre__icontains=busqueda) |
             Q(libroautor__autor__nombre__icontains=busqueda) |
@@ -61,6 +64,10 @@ def lista_libros(request):
     # Aplica el filtro de categoría cuando se selecciona una válida
     if categoria_id.isdigit():
         libros = libros.filter(categoria_id=int(categoria_id))
+
+    # Filtra únicamente libros con al menos un ejemplar disponible si se marcó la casilla
+    if solo_disponibles:
+        libros = libros.filter(disponibles__gt=0)
 
     # Ordena los resultados y muestra 12 libros por página
     libros = libros.order_by('titulo', 'id')
@@ -76,6 +83,7 @@ def lista_libros(request):
         'categorias': categorias,
         'busqueda': busqueda,
         'categoria_seleccionada': categoria_id,
+        'solo_disponibles': solo_disponibles,
         'pagina': pagina,
         'rango_paginas': rango_paginas,
         'ellipsis': paginador.ELLIPSIS,
@@ -439,6 +447,10 @@ def cambiar_estado_libro(request, libro_id):
                 return redirect('gestionar_libros')
 
             libro.activo = False
+            # Pasa los ejemplares disponibles a BAJA para mantener coherente el ciclo de vida
+            Ejemplar.objects.filter(libro=libro, estado=Ejemplar.Estado.DISPONIBLE).update(
+                estado=Ejemplar.Estado.BAJA
+            )
             mensaje = 'El libro fue dado de baja correctamente.'
         else:
             libro.activo = True

@@ -128,14 +128,18 @@ def reportes(request):
     multas_pagadas = [m for m in multas_todas if m.estado == 'PAGADA']
     multas_condonadas = [m for m in multas_todas if m.estado == 'CONDONADA']
 
-    # Total cobrado = suma real de pagos; total condonado = saldo perdonado (sin doble conteo)
-    total_cobrado = Pago.objects.aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+    # Total cobrado en el periodo seleccionado; total condonado = saldo perdonado (sin doble conteo)
+    pagos_periodo = Pago.objects.filter(
+        fecha_pago__gte=inicio_dt,
+        fecha_pago__lte=fin_dt,
+    ).select_related(
+        'multa__usuario', 'multa__prestamo__ejemplar__libro', 'registrado_por'
+    ).order_by('-fecha_pago', '-id')
+    total_cobrado = pagos_periodo.aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
     total_pendiente_cobro = sum((m.saldo for m in multas_pendientes), Decimal('0.00'))
     total_condonado = sum((max(m.saldo, Decimal('0.00')) for m in multas_condonadas), Decimal('0.00'))
 
-    ultimos_pagos = Pago.objects.select_related(
-        'multa__usuario', 'multa__prestamo__ejemplar__libro', 'registrado_por'
-    ).order_by('-fecha_pago', '-id')[:20]
+    ultimos_pagos = pagos_periodo[:20]
 
     contexto = {
         'usuario': request.user,

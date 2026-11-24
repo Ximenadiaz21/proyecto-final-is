@@ -1,7 +1,9 @@
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, Group
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
+
+GRUPO_BIBLIOTECARIOS = 'Bibliotecarios'
 
 
 # Modelo principal para las cuentas de todos los usuarios de la biblioteca
@@ -24,6 +26,9 @@ class Usuario(AbstractUser):
     bloqueado = models.BooleanField(default=False)
     motivo_bloqueo = models.CharField(max_length=255, null=True, blank=True)
 
+    # createsuperuser solicita correo y rol para evitar superusuarios con tipo incorrecto
+    REQUIRED_FIELDS = ['email', 'tipo_usuario']
+
     class Meta:
         db_table = 'usuario'
         constraints = [
@@ -32,6 +37,39 @@ class Usuario(AbstractUser):
                 name='chk_usuario_tipo',
             ),
         ]
+
+    @property
+    def es_bibliotecario(self):
+        return (self.tipo_usuario == self.Tipo.BIBLIOTECARIO or self.is_superuser) and not self.bloqueado
+
+    @property
+    def es_lector(self):
+        return self.tipo_usuario in (self.Tipo.ESTUDIANTE, self.Tipo.PROFESOR)
+
+    @property
+    def es_profesor(self):
+        return self.tipo_usuario == self.Tipo.PROFESOR
+
+    # Mantiene sincronizados is_staff y el grupo «Bibliotecarios» con el rol del usuario
+    def save(self, *args, **kwargs):
+        campos = kwargs.get('update_fields')
+        actualizar_rol = campos is None or 'tipo_usuario' in campos or 'is_superuser' in campos
+        es_biblio = self.tipo_usuario == self.Tipo.BIBLIOTECARIO
+
+        if actualizar_rol:
+            self.is_staff = es_biblio or self.is_superuser
+            if campos is not None and 'is_staff' not in campos:
+                kwargs['update_fields'] = list(campos) + ['is_staff']
+
+        super().save(*args, **kwargs)
+
+        if actualizar_rol:
+            grupo = Group.objects.filter(name=GRUPO_BIBLIOTECARIOS).first()
+            if grupo:
+                if es_biblio:
+                    self.groups.add(grupo)
+                else:
+                    self.groups.remove(grupo)
 
     def __str__(self):
         return f"{self.username} - {self.get_tipo_usuario_display()}"

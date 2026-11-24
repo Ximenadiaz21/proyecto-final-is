@@ -3,7 +3,7 @@ from django.db.models import Count, ProtectedError, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from cuentas.views_usuarios import bibliotecario_requerido
+from cuentas.permisos import bibliotecario_requerido
 from .forms import AutorForm, CategoriaForm, EditorialForm
 from .models import Autor, Categoria, Editorial
 

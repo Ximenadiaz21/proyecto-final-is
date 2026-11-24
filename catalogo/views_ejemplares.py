@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
-from cuentas.views_usuarios import bibliotecario_requerido
+from cuentas.permisos import bibliotecario_requerido
 from .forms_ejemplares import (
     EjemplarForm, ESTADOS, ESTADOS_MANUALES, estado_bloqueado,
 )

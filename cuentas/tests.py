@@ -288,5 +288,30 @@ class CuentasYRolesTests(TestCase):
         self.client.force_login(self.estudiante)
         self.assertEqual(self.client.get(reverse('mis_sugerencias')).status_code, 403)
 
+    # RF-01 / Admin: Bibliotecario sincroniza is_staff y grupo; superusuario accede sin 403
+    def test_bibliotecario_sincroniza_staff_y_superusuario_accede(self):
+        from django.contrib.auth.models import Group
+        from .models import GRUPO_BIBLIOTECARIOS
+
+        self.assertTrue(self.bibliotecario.is_staff)
+        self.assertFalse(self.estudiante.is_staff)
+        grupo = Group.objects.filter(name=GRUPO_BIBLIOTECARIOS).first()
+        if grupo:
+            self.assertTrue(self.bibliotecario.groups.filter(name=GRUPO_BIBLIOTECARIOS).exists())
+            self.assertFalse(grupo.permissions.filter(codename='delete_prestamo').exists())
+
+        superusuario = Usuario.objects.create_superuser(
+            username='admin_root',
+            password='password123',
+            email='admin_root@test.mx',
+            tipo_usuario='ESTUDIANTE',
+        )
+        self.assertTrue(superusuario.es_bibliotecario)
+        self.client.force_login(superusuario)
+        self.assertEqual(self.client.get(reverse('gestion_usuarios')).status_code, 200)
+        resp_panel = self.client.get(reverse('panel'))
+        self.assertEqual(resp_panel.status_code, 200)
+        self.assertEqual(resp_panel.context['titulo'], 'Panel del bibliotecario')
+
 
 

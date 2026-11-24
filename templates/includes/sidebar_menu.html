@@ -8,7 +8,7 @@
         </span>
     </a>
 
-    {% if request.user.tipo_usuario == 'BIBLIOTECARIO' %}
+    {% if request.user.es_bibliotecario %}
         <div class="sidebar-grupo">Acervo</div>
         <a href="{% url 'lista_libros' %}" class="sidebar-link {% if url_actual == 'lista_libros' or url_actual == 'detalle_libro' %}activo{% endif %}">
             <span class="sidebar-link-izq">

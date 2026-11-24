@@ -10,11 +10,11 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 
 
-# Verifica que el usuario sea un bibliotecario autenticado y sin bloqueo administrativo
+# Verifica que el usuario sea un bibliotecario (o superusuario) autenticado y sin bloqueo
 def es_bibliotecario(usuario):
     return (
         usuario.is_authenticated
-        and usuario.tipo_usuario == 'BIBLIOTECARIO'
+        and (usuario.tipo_usuario == 'BIBLIOTECARIO' or usuario.is_superuser)
         and not usuario.bloqueado
     )
 

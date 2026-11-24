@@ -117,7 +117,6 @@ class Command(BaseCommand):
                     'email': correo,
                     'tipo_usuario': 'BIBLIOTECARIO',
                     'is_active': True,
-                    'is_staff': False,
                 }
             )
 

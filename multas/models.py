@@ -1,6 +1,8 @@
+from decimal import Decimal
+
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.utils import timezone
 
 
@@ -80,6 +82,16 @@ class Multa(models.Model):
                     'La justificación es obligatoria para condonar una multa (RN-14).'
                 )
             })
+
+    # Suma los pagos registrados para esta multa
+    def total_pagado(self):
+        return self.pago_set.aggregate(t=Sum('monto'))['t'] or Decimal('0.00')
+
+    # Calcula el saldo pendiente de cobro de esta multa
+    def saldo(self):
+        if self.estado == self.Estado.CONDONADA:
+            return Decimal('0.00')
+        return max(self.monto - self.total_pagado(), Decimal('0.00'))
 
 
 class Pago(models.Model):

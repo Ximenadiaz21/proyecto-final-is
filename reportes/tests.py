@@ -103,6 +103,34 @@ class ReportesYExportacionTests(TestCase):
             404,
         )
 
+    # CU-32: El total cobrado de multas respeta el rango de fechas seleccionado
+    def test_cu32_reporte_multas_cobradas_filtra_por_periodo(self):
+        from datetime import timedelta
+        from django.utils import timezone
+
+        hace_60_dias = timezone.now() - timedelta(days=60)
+        Pago.objects.create(
+            multa=self.multa,
+            monto=Decimal('25.00'),
+            metodo='TARJETA',
+            folio_recibo='REC-REP-ANTIGUO',
+            fecha_pago=hace_60_dias,
+            registrado_por=self.bibliotecario,
+        )
+
+        self.client.force_login(self.bibliotecario)
+        # Periodo por defecto (últimos 30 días): solo cuenta el pago de hoy ($15.00)
+        resp_reciente = self.client.get(reverse('reportes'))
+        self.assertEqual(resp_reciente.context['total_cobrado'], Decimal('15.00'))
+
+        # Ampliando fecha_inicio a 90 días atrás: incluye ambos pagos ($40.00)
+        hoy = timezone.localdate()
+        resp_amplio = self.client.get(reverse('reportes'), {
+            'fecha_inicio': (hoy - timedelta(days=90)).isoformat(),
+            'fecha_fin': hoy.isoformat(),
+        })
+        self.assertEqual(resp_amplio.context['total_cobrado'], Decimal('40.00'))
+
 
 # Pruebas del comando de carga operativa de demostración en base limpia (RNF-08)
 class DemoOperacionCommandTests(TestCase):

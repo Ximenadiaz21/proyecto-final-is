@@ -5,7 +5,7 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from cuentas.views_usuarios import bibliotecario_requerido
+from cuentas.permisos import bibliotecario_requerido
 from .models import PoliticaPrestamo
 
 

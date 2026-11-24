@@ -1,78 +1,81 @@
-# proyecto-final-is
 # Sistema de Gestión de Biblioteca Escolar
 
-Proyecto final de Ingeniería de Software. Aplicación web hecha con **Django 5.2** y **MySQL 8** que automatiza la operación de una biblioteca escolar: catálogo, préstamos, devoluciones, multas y administración.
+Proyecto final de Ingeniería de Software. Aplicación web desarrollada con **Python 3.12+**, **Django 5.2** y **MySQL 8** (InnoDB, `utf8mb4`) que automatiza la operación completa de una biblioteca escolar: catálogo, préstamos en línea y mostrador, devoluciones, reservas en cola FIFO, cálculo y cobro de multas, sugerencias de adquisición, notificaciones y reportes operativos.
 
 ## Requisitos
 
 - Python 3.12 o superior
-- MySQL 8.x (motor InnoDB, `utf8mb4`)
+- MySQL 8.x (motor InnoDB, codificación `utf8mb4`)
 - Git
-- En Windows, `mysqlclient` suele instalarse sin compilar con `pip`. Si falla, instala una versión con rueda precompilada.
+- En Windows, `mysqlclient` suele instalarse con rueda precompilada mediante `pip`.
 
 ## Instalación
 
 1. **Clona el repositorio y entra a la carpeta**
 
-   ```
+   ```bash
    git clone <URL_DEL_REPOSITORIO>
    cd proyecto-final-is
    ```
 
 2. **Crea y activa el entorno virtual**
 
-   ```
+   ```powershell
    python -m venv venv
    venv\Scripts\activate          # Windows (PowerShell)
-   source venv/bin/activate       # Linux / macOS
+   # source venv/bin/activate     # Linux / macOS
    ```
 
 3. **Instala las dependencias**
 
-   ```
+   ```bash
    pip install -r requirements.txt
    ```
 
 4. **Crea la base de datos vacía en MySQL**
 
    ```sql
-   CREATE DATABASE biblioteca CHARACTER SET utf8mb4;
+   CREATE DATABASE biblioteca CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
    ```
+
+   > Si vas a ejecutar `python manage.py test`, asegúrate de que el usuario de MySQL tenga permisos para crear la base temporal `test_biblioteca`.
 
 5. **Configura las variables de entorno**
 
-   Copia `.env.example` como `.env` y escribe tu usuario y contraseña de MySQL:
+   Copia `.env.example` como `.env` y coloca tus credenciales locales de MySQL:
 
+   ```powershell
+   copy .env.example .env         # Windows
+   # cp .env.example .env         # Linux / macOS
    ```
-   copy .env.example .env      # Windows
-   cp .env.example .env        # Linux / macOS
-   ```
 
-   Las credenciales no se suben al repositorio: `.env` está en `.gitignore`.
+   - Las credenciales **no** se suben al repositorio (`.env` está en `.gitignore`).
+   - El correo electrónico (CU-03 y RF-15) imprime en consola por defecto; para enviar correos reales por SMTP, configura `EMAIL_HOST_USER` y `EMAIL_HOST_PASSWORD` en `.env`.
 
-6. **Crea las tablas**
+6. **Aplica las migraciones**
 
-   ```
+   ```bash
    python manage.py migrate
    ```
 
-   Esto crea todas las tablas y las dos políticas de préstamo iniciales (Estudiante y Profesor).
+   Esto crea las 18 tablas del modelo entidad-relación, las restricciones `CHECK`/`UNIQUE`/`PROTECT`, el grupo de permisos `Bibliotecarios` y las políticas de préstamo iniciales (`ESTUDIANTE` y `PROFESOR`).
 
 7. **Carga los datos de prueba**
 
-   ```
+   ```bash
    python manage.py usuarios
    python manage.py libros
    python manage.py demo_operacion
    ```
 
-   - `usuarios`: crea estudiantes, profesores y bibliotecarios.
-   - `libros`: carga 50 libros con 100 ejemplares (consulta OpenLibrary si hay internet, o usa datos locales con `--offline`).
-   - `demo_operacion` *(opcional)*: carga préstamos de ejemplo (devueltos, activos, solicitados y vencidos), reservas en cola FIFO, multas, pagos, sugerencias y notificaciones para demostrar reportes y operación desde el inicio.
+   - `usuarios`: crea **20 estudiantes**, **5 profesores**, **2 bibliotecarios**, 5 carreras y 5 departamentos.
+   - `libros`: carga **50 libros** con **100 ejemplares** (consulta OpenLibrary si hay conexión, o usa datos locales con `--offline`).
+   - `demo_operacion` *(opcional, idempotente)*: carga préstamos de demostración (devueltos, activos, solicitados y vencidos), reservas en cola FIFO, multas, pagos, sugerencias y notificaciones para probar reportes desde el inicio.
+   - También puedes crear un administrador manualmente con `python manage.py createsuperuser` (solicita usuario, correo y tipo de usuario).
 
 8. **Inicia el servidor**
 
-   ```
+   ```bash
    python manage.py runserver
    ```
 
@@ -80,79 +83,61 @@ Proyecto final de Ingeniería de Software. Aplicación web hecha con **Django 5.
 
 ## Usuarios de prueba
 
-| Rol | Usuario | Contraseña |
+Todos los usuarios generados por `python manage.py usuarios` comparten la contraseña `passbiblio`:
+
+| Rol | Usuarios | Cantidad |
 |---|---|---|
-| Bibliotecario | bibliotecario_demo | passbiblio |
-| Bibliotecario | bibliotecario02 | passbiblio |
-| Profesor | profesor01 | passbiblio |
-| Profesor | profesor02 | passbiblio |
-| Profesor | profesor03 | passbiblio |
-| Profesor | profesor04 | passbiblio |
-| Profesor | profesor05 | passbiblio |
-| Estudiante | alumno01 | passbiblio |
-| Estudiante | alumno02 | passbiblio |
-| Estudiante | alumno03 | passbiblio |
-| Estudiante | alumno04 | passbiblio |
-| Estudiante | alumno05 | passbiblio |
-| Estudiante | alumno06 | passbiblio |
-| Estudiante | alumno07 | passbiblio |
-| Estudiante | alumno08 | passbiblio |
-| Estudiante | alumno09 | passbiblio |
-| Estudiante | alumno10 | passbiblio |
-| Estudiante | alumno11 | passbiblio |
-| Estudiante | alumno12 | passbiblio |
-| Estudiante | alumno13 | passbiblio |
-| Estudiante | alumno14 | passbiblio |
-| Estudiante | alumno15 | passbiblio |
-| Estudiante | alumno16 | passbiblio |
-| Estudiante | alumno17 | passbiblio |
-| Estudiante | alumno18 | passbiblio |
-| Estudiante | alumno19 | passbiblio |
-| Estudiante | alumno20 | passbiblio |
+| Bibliotecario | `bibliotecario_demo`, `bibliotecario02` | 2 |
+| Profesor | `profesor01` a `profesor05` | 5 |
+| Estudiante | `alumno01` a `alumno20` | 20 |
 
 ## Comandos útiles
 
-| Comando | Qué hace |
+| Comando | Descripción |
 |---|---|
-| `python manage.py demo_operacion` | Carga préstamos, reservas, multas, pagos, sugerencias y notificaciones de demostración (idempotente). |
-| `python manage.py procesar_vencimientos` | Marca préstamos vencidos, expira solicitudes y reservas no recogidas, y envía recordatorios (CU-34, CU-35 y CU-36). |
-| `python manage.py procesar_vencimientos --dry-run` | Muestra lo que haría sin guardar cambios. |
-| `python manage.py test` | Ejecuta las pruebas automatizadas. |
-| `python manage.py check` | Verifica la configuración del proyecto. |
+| `python manage.py usuarios` | Carga carreras, departamentos y 27 usuarios de prueba (idempotente). |
+| `python manage.py libros [--offline]` | Carga 50 libros y 100 ejemplares en el catálogo (idempotente). |
+| `python manage.py demo_operacion` | Carga operación de demostración para reportes y flujos (idempotente). |
+| `python manage.py procesar_vencimientos` | Marca préstamos vencidos (CU-34), expira solicitudes/reservas (CU-35) y envía recordatorios (CU-36). |
+| `python manage.py procesar_vencimientos --dry-run` | Simula el proceso programado sin modificar la base de datos. |
+| `python manage.py test` | Ejecuta las **55 pruebas automatizadas** (reglas RN-01 a RN-16, permisos, flujos y reportes). |
+| `python manage.py check` | Verifica la configuración del proyecto Django. |
 
-El comando `procesar_vencimientos` está pensado para ejecutarse una vez al día (por ejemplo con el Programador de tareas de Windows o `cron`).
+El comando `procesar_vencimientos` está diseñado para ejecutarse diariamente desde el Programador de tareas de Windows o `cron` (RF-17).
 
 ## Estructura del proyecto
 
-```
+```text
 proyecto-final-is/
 ├── manage.py
 ├── requirements.txt
 ├── .env.example
-├── biblioteca/     # configuración (settings, urls)
-├── cuentas/        # Usuario, Estudiante, Profesor, Notificacion, permisos y servicios de notificación
-├── catalogo/       # Autor, Editorial, Categoria, Libro, Ejemplar
-├── prestamos/      # PoliticaPrestamo, Prestamo, Reserva, reglas y capa de servicios
-├── multas/         # Multa, Pago
-├── reportes/       # Reportes operativos y exportación CSV (sin modelos)
-└── templates/      # plantillas HTML (Bootstrap 5)
+├── biblioteca/     # configuración (settings, urls, wsgi, backend SMTP)
+├── cuentas/        # Usuario, Estudiante, Profesor, Carrera, Departamento, Notificacion, SugerenciaAdquisicion, permisos y notificaciones
+├── catalogo/       # Autor, Editorial, Categoria, Libro, LibroAutor, Ejemplar y búsqueda
+├── prestamos/      # PoliticaPrestamo, Prestamo, Reserva, reglas, capa de servicios y comandos programados
+├── multas/         # Multa, Pago y capa de servicios de cobro/condonación
+├── reportes/       # Reportes operativos por periodo y exportación CSV (sin modelos)
+├── templates/      # Plantillas HTML responsivas (Bootstrap 5, incluye 403.html y 404.html)
+└── static/         # Estilos CSS personalizados
 ```
 
 ## Reglas de negocio principales
 
-Los valores predeterminados están en la tabla `politica_prestamo` y se modifican sin cambiar código.
+Los parámetros de RN-01 a RN-06 se almacenan en la tabla `politica_prestamo` y son editables desde la aplicación sin modificar código (CU-31):
 
-| Regla | Estudiante | Profesor |
-|---|---|---|
-| Días de préstamo | 7 | 30 |
-| Libros simultáneos | 3 | 10 |
-| Renovaciones | 1 | 2 |
-| Multa por día de retraso | $10.00 MXN | $10.00 MXN |
-| Multa máxima por préstamo | $300.00 MXN | $300.00 MXN |
-| Horas para recoger | 48 | 48 |
+| Regla | Descripción | Estudiante | Profesor |
+|---|---|---:|---:|
+| RN-01 | Días de préstamo (naturales) | 7 | 30 |
+| RN-02 | Máximo de libros simultáneos | 3 | 10 |
+| RN-03 | Renovaciones permitidas por préstamo | 1 | 2 |
+| RN-04 | Multa por día de retraso | $10.00 MXN | $10.00 MXN |
+| RN-05 | Multa máxima por préstamo | $300.00 MXN | $300.00 MXN |
+| RN-06 | Horas para recoger solicitud o reserva | 48 h | 48 h |
 
-La multa por retraso se calcula como `min(días_retraso × multa_por_día, multa_máxima)`.
+- **RN-07:** `monto = min(días_retraso × multa_por_día, multa_máxima)`.
+- **RN-08 a RN-16:** elegibilidad sin adeudos/vencidos, bloqueo de renovación ante vencimiento o reservas, cola FIFO al liberar ejemplares, multas por daño/pérdida según `costo_reposicion`, condonación exclusiva de bibliotecario con justificación obligatoria, bloqueo de ejemplares no prestables y conservación histórica sin borrado físico.
 
 ## Tecnologías
 
-Python · Django 5.2 · MySQL 8 · Bootstrap 5.3 · Bootstrap Icons
+Python 3.12+ · Django 5.2 · MySQL 8 · Bootstrap 5.3 · Bootstrap Icons

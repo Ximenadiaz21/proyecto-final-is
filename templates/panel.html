@@ -83,7 +83,7 @@
             </h1>
 
             <p>
-                {% if usuario.tipo_usuario == 'BIBLIOTECARIO' %}
+                {% if usuario.es_bibliotecario %}
 
                     Administra los servicios y recursos de la biblioteca
                     desde un solo lugar.
@@ -109,7 +109,7 @@
         </section>
 
         <!-- Muestra el panel del bibliotecario -->
-        {% if usuario.tipo_usuario == 'BIBLIOTECARIO' %}
+        {% if usuario.es_bibliotecario %}
 
             <h2 class="titulo-seccion">
                 Administración de biblioteca

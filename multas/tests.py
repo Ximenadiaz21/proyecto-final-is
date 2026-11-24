@@ -226,3 +226,38 @@ class MultasYPagosTests(TestCase):
         self.assertFalse(PrestamoAdmin(Prestamo, sitio).has_delete_permission(req))
         self.assertFalse(MultaAdmin(Multa, sitio).has_delete_permission(req))
         self.assertFalse(PagoAdmin(Pago, sitio).has_delete_permission(req))
+
+    # RNF-06 / RN-14: Servicios de multas validan rol, saldo y métodos del modelo sin capa HTTP
+    def test_servicio_multas_saldo_y_defensa_rol_rn14(self):
+        from prestamos.servicios import ReglaNegocioError
+        from . import servicios
+
+        multa = Multa.objects.create(
+            prestamo=self.prestamo,
+            usuario=self.estudiante,
+            motivo='RETRASO',
+            dias_retraso=5,
+            monto=Decimal('50.00'),
+            estado='PENDIENTE',
+        )
+        self.assertEqual(multa.saldo(), Decimal('50.00'))
+
+        # Defensa en profundidad: un estudiante no puede cobrar ni condonar desde el servicio
+        with self.assertRaises(ReglaNegocioError):
+            servicios.condonar_multa(multa.id, 'Motivo', self.estudiante)
+
+        # No permite abonar más que el saldo
+        with self.assertRaises(ReglaNegocioError):
+            servicios.registrar_pago(multa.id, Decimal('80.00'), 'EFECTIVO', self.bibliotecario)
+
+        pago, multa_actualizada = servicios.registrar_pago(
+            multa.id, Decimal('20.00'), 'TRANSFERENCIA', self.bibliotecario
+        )
+        self.assertEqual(pago.monto, Decimal('20.00'))
+        self.assertEqual(multa_actualizada.total_pagado(), Decimal('20.00'))
+        self.assertEqual(multa_actualizada.saldo(), Decimal('30.00'))
+
+        servicios.condonar_multa(multa.id, 'Condonación parcial autorizada', self.bibliotecario)
+        multa.refresh_from_db()
+        self.assertEqual(multa.estado, Multa.Estado.CONDONADA)
+        self.assertEqual(multa.saldo(), Decimal('0.00'))
