@@ -86,6 +86,12 @@ def nuevo_ejemplar(request):
                 request,
                 f"{len(creados)} ejemplares creados ({creados[0].codigo_inventario} a {creados[-1].codigo_inventario})."
             )
+        for reserva in form.reservas_asignadas:
+            messages.info(
+                request,
+                f"Ejemplar {reserva.ejemplar_asignado.codigo_inventario} quedó apartado para la reserva "
+                f"#{reserva.id} de {reserva.usuario.username} (RN-12)."
+            )
         return redirect(f"{reverse('gestion_ejemplares')}?libro={form.libro.pk}")
 
     contexto = {
@@ -107,6 +113,12 @@ def editar_ejemplar(request, ejemplar_id):
     if request.method == 'POST' and form.is_valid():
         guardado = form.save()[0]
         messages.success(request, f"Ejemplar {guardado.codigo_inventario} actualizado correctamente.")
+        for reserva in form.reservas_asignadas:
+            messages.info(
+                request,
+                f"Ejemplar {guardado.codigo_inventario} quedó apartado para la reserva "
+                f"#{reserva.id} de {reserva.usuario.username} (RN-12)."
+            )
         return redirect(f"{reverse('gestion_ejemplares')}?libro={guardado.libro_id}")
 
     contexto = {

@@ -8,9 +8,11 @@ from django.db import transaction
 from django.db.models import Count, Prefetch, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from cuentas.views_usuarios import bibliotecario_requerido
-from prestamos.models import PoliticaPrestamo
+from prestamos.models import PoliticaPrestamo, Prestamo, Reserva
+from prestamos.reglas import libros_en_uso, motivo_inelegible
 from .forms import AutorForm, CategoriaForm, EditorialForm, LibroForm
 from .models import Categoria, Ejemplar, Libro, LibroAutor
 
@@ -97,10 +99,13 @@ def detalle_libro(request, libro_id):
         libro=libro
     ).order_by('codigo_inventario')
 
-    # Obtiene la política del lector para mostrar el resumen previo en CU-06 (paso 5)
+    # Evalúa elegibilidad (CU-06 paso 4 <<include>> CU-07) y política antes de mostrar el resumen (paso 5)
     politica = None
     fecha_vencimiento_estimada = None
     limite_recoger_estimado = None
+    motivo_no_puede_solicitar = ''
+    motivo_no_puede_reservar = ''
+
     if request.user.tipo_usuario in ('ESTUDIANTE', 'PROFESOR'):
         politica = PoliticaPrestamo.objects.filter(
             tipo_usuario=request.user.tipo_usuario
@@ -109,12 +114,41 @@ def detalle_libro(request, libro_id):
             fecha_vencimiento_estimada = timezone.localdate() + timedelta(days=politica.dias_prestamo)
             limite_recoger_estimado = timezone.now() + timedelta(hours=politica.horas_para_recoger)
 
+        motivo_general = motivo_inelegible(request.user)
+        tiene_mismo_titulo = Prestamo.objects.filter(
+            usuario=request.user,
+            ejemplar__libro=libro,
+            estado__in=['SOLICITADO', 'ACTIVO', 'VENCIDO'],
+        ).exists()
+
+        if motivo_general:
+            motivo_no_puede_solicitar = motivo_general
+            motivo_no_puede_reservar = motivo_general
+        elif tiene_mismo_titulo:
+            msg_titulo = "Ya tienes un préstamo activo o solicitado de este mismo título (RN-11)."
+            motivo_no_puede_solicitar = msg_titulo
+            motivo_no_puede_reservar = msg_titulo
+        elif politica and libros_en_uso(request.user) >= politica.max_libros:
+            motivo_no_puede_solicitar = (
+                f"Has alcanzado el límite máximo de libros permitidos ({politica.max_libros}) (RN-02)."
+            )
+
+        if not motivo_no_puede_reservar:
+            if Reserva.objects.filter(
+                usuario=request.user,
+                libro=libro,
+                estado__in=['PENDIENTE', 'DISPONIBLE'],
+            ).exists():
+                motivo_no_puede_reservar = "Ya tienes una reserva activa para este libro."
+
     contexto = {
         'libro': libro,
         'ejemplares': ejemplares,
         'politica': politica,
         'fecha_vencimiento_estimada': fecha_vencimiento_estimada,
         'limite_recoger_estimado': limite_recoger_estimado,
+        'motivo_no_puede_solicitar': motivo_no_puede_solicitar,
+        'motivo_no_puede_reservar': motivo_no_puede_reservar,
     }
 
     return render(request, 'catalogo/detalle_libro.html', contexto)
@@ -375,26 +409,43 @@ def editar_libro(request, libro_id):
 
 # Permite dar de baja o reactivar un libro sin eliminarlo de MySQL
 @bibliotecario_requerido
+@require_POST
 def cambiar_estado_libro(request, libro_id):
-    # Busca el libro que se desea modificar
-    libro = get_object_or_404(Libro, id=libro_id)
+    with transaction.atomic():
+        # Bloquea el registro del libro dentro de la transacción
+        libro = get_object_or_404(Libro.objects.select_for_update(), id=libro_id)
 
-    # El estado solamente puede cambiarse desde un formulario POST
-    if request.method != 'POST':
-        return redirect('gestionar_libros')
+        if libro.activo:
+            # No permite dar de baja si hay préstamos en curso o reservas activas
+            if Prestamo.objects.filter(
+                ejemplar__libro=libro,
+                estado__in=['SOLICITADO', 'ACTIVO', 'VENCIDO'],
+            ).exists():
+                messages.error(
+                    request,
+                    f"No se puede dar de baja «{libro.titulo}» porque tiene préstamos solicitados, activos o vencidos."
+                )
+                return redirect('gestionar_libros')
 
-    # Cambia el estado actual del libro
-    if libro.activo:
-        libro.activo = False
-        mensaje = 'El libro fue dado de baja correctamente.'
-    else:
-        libro.activo = True
-        mensaje = 'El libro fue reactivado correctamente.'
+            if Reserva.objects.filter(
+                libro=libro,
+                estado__in=['PENDIENTE', 'DISPONIBLE'],
+            ).exists():
+                messages.error(
+                    request,
+                    f"No se puede dar de baja «{libro.titulo}» porque tiene reservas activas. "
+                    "Cancélalas primero desde Gestión de reservas."
+                )
+                return redirect('gestionar_libros')
 
-    # Guarda únicamente el campo que cambió
-    libro.save(update_fields=['activo'])
+            libro.activo = False
+            mensaje = 'El libro fue dado de baja correctamente.'
+        else:
+            libro.activo = True
+            mensaje = 'El libro fue reactivado correctamente.'
+
+        libro.save(update_fields=['activo'])
 
     messages.success(request, mensaje)
-
     return redirect('gestionar_libros')
 

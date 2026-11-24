@@ -135,3 +135,86 @@ class CatalogoTests(TestCase):
         self.assertFalse(Editorial.objects.filter(id=editorial_libre.id).exists())
         self.assertFalse(Categoria.objects.filter(id=categoria_libre.id).exists())
 
+    # RN-12: Editar un ejemplar de EN_REPARACION a DISPONIBLE (o dar de alta uno nuevo) respeta la cola FIFO
+    def test_rn12_ejemplar_form_asigna_cola_fifo_al_pasar_a_disponible(self):
+        from prestamos.models import PoliticaPrestamo, Reserva
+
+        PoliticaPrestamo.objects.update_or_create(
+            tipo_usuario='ESTUDIANTE',
+            defaults={
+                'dias_prestamo': 7,
+                'max_libros': 3,
+                'max_renovaciones': 1,
+                'multa_por_dia': Decimal('10.00'),
+                'multa_maxima': Decimal('300.00'),
+                'horas_para_recoger': 48,
+            },
+        )
+
+        ejemplar_reparacion = Ejemplar.objects.create(
+            libro=self.libro,
+            codigo_inventario='EJ-REP-01',
+            estado='EN_REPARACION',
+        )
+        reserva = Reserva.objects.create(
+            usuario=self.estudiante,
+            libro=self.libro,
+            estado='PENDIENTE',
+        )
+
+        form = EjemplarForm(
+            {
+                'codigo_inventario': ejemplar_reparacion.codigo_inventario,
+                'ubicacion': 'Estante B',
+                'estado': 'DISPONIBLE',
+                'observaciones': 'Reparado',
+            },
+            instance=ejemplar_reparacion,
+        )
+        self.assertTrue(form.is_valid())
+        form.save()
+
+        ejemplar_reparacion.refresh_from_db()
+        reserva.refresh_from_db()
+        self.assertEqual(ejemplar_reparacion.estado, 'RESERVADO')
+        self.assertEqual(reserva.estado, 'DISPONIBLE')
+        self.assertEqual(reserva.ejemplar_asignado_id, ejemplar_reparacion.id)
+        self.assertEqual(len(form.reservas_asignadas), 1)
+
+    # CU-17: No permite dar de baja lógica un libro con préstamos en curso o reservas activas (y exige POST)
+    def test_cu17_no_baja_logica_libro_con_prestamo_o_reserva_y_exige_post(self):
+        from prestamos.models import Prestamo, Reserva
+
+        self.client.force_login(self.bibliotecario)
+
+        # GET no debe permitirse (405 Method Not Allowed)
+        self.assertEqual(
+            self.client.get(reverse('cambiar_estado_libro', args=[self.libro.id])).status_code,
+            405,
+        )
+
+        # Con préstamo SOLICITADO o ACTIVO no permite baja
+        ej = Ejemplar.objects.get(codigo_inventario='EJ-CAT-01')
+        prestamo = Prestamo.objects.create(usuario=self.estudiante, ejemplar=ej, estado='SOLICITADO')
+        self.client.post(reverse('cambiar_estado_libro', args=[self.libro.id]))
+        self.libro.refresh_from_db()
+        self.assertTrue(self.libro.activo)
+
+        prestamo.estado = 'DEVUELTO'
+        prestamo.save()
+
+        # Con reserva PENDIENTE tampoco permite baja
+        reserva = Reserva.objects.create(usuario=self.estudiante, libro=self.libro, estado='PENDIENTE')
+        self.client.post(reverse('cambiar_estado_libro', args=[self.libro.id]))
+        self.libro.refresh_from_db()
+        self.assertTrue(self.libro.activo)
+
+        reserva.estado = 'CANCELADA'
+        reserva.save()
+
+        # Ya sin préstamos ni reservas activas sí permite baja
+        self.client.post(reverse('cambiar_estado_libro', args=[self.libro.id]))
+        self.libro.refresh_from_db()
+        self.assertFalse(self.libro.activo)
+
+

@@ -3,12 +3,13 @@ from datetime import timedelta
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from catalogo.models import Ejemplar, Libro
-from cuentas.models import Notificacion
+from cuentas.models import Notificacion, Usuario
 from cuentas.views_usuarios import bibliotecario_requerido
 from .models import PoliticaPrestamo, Prestamo, Reserva
 from .reglas import liberar_o_asignar_ejemplar, libros_en_uso, motivo_inelegible
@@ -19,20 +20,26 @@ from .reglas import liberar_o_asignar_ejemplar, libros_en_uso, motivo_inelegible
 @require_POST
 def reservar_libro(request, libro_id):
     libro = get_object_or_404(Libro, id=libro_id, activo=True)
-    usuario = request.user
 
     # 1. Solo estudiantes y profesores pueden reservar libros
-    if usuario.tipo_usuario not in ['ESTUDIANTE', 'PROFESOR']:
+    if request.user.tipo_usuario not in ['ESTUDIANTE', 'PROFESOR']:
         messages.error(request, "Los bibliotecarios no pueden reservar libros.")
         return redirect('detalle_libro', libro_id=libro.id)
 
-    # 2. Verifica elegibilidad: cuenta activa, sin multas pendientes ni préstamos vencidos (CU-07, RN-08)
-    motivo = motivo_inelegible(usuario)
-    if motivo:
-        messages.error(request, motivo)
-        return redirect('detalle_libro', libro_id=libro.id)
-
     with transaction.atomic():
+        # Bloquea al usuario dentro de la transacción para evitar reservas duplicadas concurrentes (RNF-03)
+        usuario = Usuario.objects.select_for_update().get(pk=request.user.pk)
+
+        if not usuario.is_active:
+            messages.error(request, "Tu cuenta no está activa. Contacta al personal de la biblioteca.")
+            return redirect('detalle_libro', libro_id=libro.id)
+
+        # 2. Verifica elegibilidad: cuenta activa, sin multas pendientes ni préstamos vencidos (CU-07, RN-08)
+        motivo = motivo_inelegible(usuario)
+        if motivo:
+            messages.error(request, motivo)
+            return redirect('detalle_libro', libro_id=libro.id)
+
         # 3. Solo se puede reservar cuando NO hay ejemplares disponibles (RF-09, CU-06 2a)
         ejemplares_libro = Ejemplar.objects.select_for_update().filter(libro=libro)
         hay_disponibles = ejemplares_libro.filter(estado='DISPONIBLE').exists()
@@ -87,11 +94,13 @@ def reservar_libro(request, libro_id):
             fecha_reserva=ahora
         )
 
-        # Calcula la posición del usuario en la cola de espera del libro
+        # Calcula la posición exacta del usuario en la cola FIFO (mismo desempate por id que liberar_o_asignar_ejemplar)
         posicion = Reserva.objects.filter(
             libro=libro,
             estado='PENDIENTE',
-            fecha_reserva__lte=ahora
+        ).filter(
+            Q(fecha_reserva__lt=reserva.fecha_reserva)
+            | Q(fecha_reserva=reserva.fecha_reserva, id__lte=reserva.id)
         ).count()
 
         # Genera notificación de confirmación para el usuario
@@ -211,7 +220,14 @@ def atender_reserva(request, reserva_id):
             )
             return redirect('gestion_reservas')
 
-        lector = reserva.usuario
+        lector = Usuario.objects.select_for_update().get(pk=reserva.usuario_id)
+
+        if not lector.is_active:
+            messages.error(
+                request,
+                f"No se puede entregar al usuario {lector.username} porque su cuenta está inactiva."
+            )
+            return redirect('gestion_reservas')
 
         # 1. Re-verifica elegibilidad al momento de entregar (CU-07, RN-08)
         motivo = motivo_inelegible(lector)
@@ -251,6 +267,13 @@ def atender_reserva(request, reserva_id):
         ahora = timezone.now()
         vencimiento = timezone.localdate() + timedelta(days=politica.dias_prestamo)
         ejemplar = Ejemplar.objects.select_for_update().get(pk=reserva.ejemplar_asignado_id)
+
+        if ejemplar.estado != 'RESERVADO':
+            messages.error(
+                request,
+                f"El ejemplar [{ejemplar.codigo_inventario}] no está apartado (estado actual: {ejemplar.estado})."
+            )
+            return redirect('gestion_reservas')
 
         # 5. Registra el préstamo como ACTIVO y marca el ejemplar como PRESTADO
         Prestamo.objects.create(

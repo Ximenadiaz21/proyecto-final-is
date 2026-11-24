@@ -61,6 +61,7 @@ class EjemplarForm(forms.Form):
     def __init__(self, *args, instance=None, libro_inicial=None, **kwargs):
         self.instance = instance
         self.libro = None
+        self.reservas_asignadas = []
 
         if 'initial' not in kwargs:
             if instance is not None:
@@ -158,30 +159,50 @@ class EjemplarForm(forms.Form):
     # Guarda y devuelve la lista de ejemplares creados o actualizados
     @transaction.atomic
     def save(self):
+        from prestamos.reglas import liberar_o_asignar_ejemplar
+
         d = self.cleaned_data
+        self.reservas_asignadas = []
 
         if self.instance is not None:
-            ejemplar = self.instance
+            ejemplar = Ejemplar.objects.select_for_update().select_related('libro').get(pk=self.instance.pk)
+            estado_anterior = ejemplar.estado
             ejemplar.codigo_inventario = d['codigo_inventario']
             ejemplar.ubicacion = d['ubicacion'] or None
             ejemplar.fecha_adquisicion = d['fecha_adquisicion']
             ejemplar.observaciones = d['observaciones'] or None
 
-            if not self.fields['estado'].disabled:
-                ejemplar.estado = d['estado']
+            puede_cambiar_estado = not self.fields['estado'].disabled and not estado_bloqueado(ejemplar)
+            if puede_cambiar_estado:
+                if d['estado'] == 'DISPONIBLE' and estado_anterior != 'DISPONIBLE':
+                    ejemplar.save()
+                    # RN-12: si pasa a disponible, atiende la cola FIFO de reservas pendientes
+                    reserva = liberar_o_asignar_ejemplar(ejemplar)
+                    if reserva:
+                        self.reservas_asignadas.append(reserva)
+                else:
+                    ejemplar.estado = d['estado']
+                    ejemplar.save()
+            else:
+                ejemplar.save()
 
-            ejemplar.save()
             return [ejemplar]
 
         creados = []
         for _ in range(d.get('cantidad') or 1):
-            creados.append(Ejemplar.objects.create(
+            ejemplar = Ejemplar.objects.create(
                 libro=self.libro,
                 codigo_inventario=d['codigo_inventario'] or self._codigo_libre(self.libro),
                 ubicacion=d['ubicacion'] or None,
                 estado=d['estado'],
                 fecha_adquisicion=d['fecha_adquisicion'],
                 observaciones=d['observaciones'] or None,
-            ))
+            )
+            # RN-12: si se da de alta un ejemplar disponible y hay reservas pendientes, se asigna por FIFO
+            if ejemplar.estado == 'DISPONIBLE':
+                reserva = liberar_o_asignar_ejemplar(ejemplar)
+                if reserva:
+                    self.reservas_asignadas.append(reserva)
+            creados.append(ejemplar)
 
         return creados

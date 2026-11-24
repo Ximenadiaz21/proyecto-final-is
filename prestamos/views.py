@@ -253,14 +253,33 @@ def entregar_prestamo(request, prestamo_id):
             )
             return redirect('gestion_prestamos')
 
+        # Bloquea al usuario y al ejemplar dentro de la transacción (RNF-03)
+        lector = Usuario.objects.select_for_update().get(pk=prestamo.usuario_id)
+        ejemplar_bloqueado = Ejemplar.objects.select_for_update().select_related('libro').get(pk=prestamo.ejemplar_id)
+
+        if not lector.is_active:
+            messages.error(
+                request,
+                f"No se puede entregar: la cuenta de {lector.username} está dada de baja (inactiva)."
+            )
+            return redirect('gestion_prestamos')
+
+        if ejemplar_bloqueado.estado != 'RESERVADO':
+            messages.error(
+                request,
+                f"No se puede entregar: el ejemplar [{ejemplar_bloqueado.codigo_inventario}] "
+                f"está en estado {ejemplar_bloqueado.estado} (RN-15)."
+            )
+            return redirect('gestion_prestamos')
+
         # Re-verifica elegibilidad al momento de entregar (CU-23 <<include>> CU-07)
-        motivo = motivo_inelegible(prestamo.usuario)
+        motivo = motivo_inelegible(lector)
         if motivo:
             messages.error(request, f"No se puede entregar: {motivo}")
             return redirect('gestion_prestamos')
 
         try:
-            politica = PoliticaPrestamo.objects.get(tipo_usuario=prestamo.usuario.tipo_usuario)
+            politica = PoliticaPrestamo.objects.get(tipo_usuario=lector.tipo_usuario)
         except PoliticaPrestamo.DoesNotExist:
             messages.error(request, "No hay política de préstamo para este tipo de usuario.")
             return redirect('gestion_prestamos')
@@ -271,8 +290,8 @@ def entregar_prestamo(request, prestamo_id):
         prestamo.entregado_por = request.user
         prestamo.save()
 
-        prestamo.ejemplar.estado = 'PRESTADO'
-        prestamo.ejemplar.save()
+        ejemplar_bloqueado.estado = 'PRESTADO'
+        ejemplar_bloqueado.save(update_fields=['estado'])
 
     messages.success(
         request,
@@ -516,19 +535,24 @@ def registrar_incidente_ejemplar(request, prestamo_id):
         if dias_retraso > 0:
             try:
                 politica = PoliticaPrestamo.objects.get(tipo_usuario=prestamo.usuario.tipo_usuario)
-                monto_retraso = prestamo.calcular_multa(politica, hoy)
-                if monto_retraso > 0:
-                    multa_retraso = Multa.objects.create(
-                        prestamo=prestamo,
-                        usuario=prestamo.usuario,
-                        motivo='RETRASO',
-                        dias_retraso=dias_retraso,
-                        monto=monto_retraso,
-                        estado='PENDIENTE',
-                        fecha_generacion=ahora
-                    )
             except PoliticaPrestamo.DoesNotExist:
-                pass
+                messages.error(
+                    request,
+                    "No hay política de préstamo para calcular la multa por retraso. No se registró el incidente."
+                )
+                return redirect('gestion_prestamos')
+
+            monto_retraso = prestamo.calcular_multa(politica, hoy)
+            if monto_retraso > 0:
+                multa_retraso = Multa.objects.create(
+                    prestamo=prestamo,
+                    usuario=prestamo.usuario,
+                    motivo='RETRASO',
+                    dias_retraso=dias_retraso,
+                    monto=monto_retraso,
+                    estado='PENDIENTE',
+                    fecha_generacion=ahora
+                )
 
         # Crea la multa adicional por daño o pérdida (RN-13)
         multa_incidente = Multa.objects.create(
@@ -544,20 +568,30 @@ def registrar_incidente_ejemplar(request, prestamo_id):
         # Actualiza el estado del préstamo y del ejemplar según el diagrama de estados (Sección 10.3)
         if motivo == 'DANIO':
             prestamo.estado = 'DEVUELTO'
+            prestamo.fecha_devolucion = ahora
             prestamo.ejemplar.estado = 'EN_REPARACION'
             etiqueta_incidente = 'daño'
         else:
+            # En caso de pérdida el ejemplar nunca fue devuelto, por lo que fecha_devolucion queda vacía
             prestamo.estado = 'PERDIDO'
             prestamo.ejemplar.estado = 'PERDIDO'
             etiqueta_incidente = 'pérdida'
 
-        prestamo.fecha_devolucion = ahora
         prestamo.recibido_por = request.user
         if observaciones:
             prestamo.observaciones = observaciones[:255]
             prestamo.ejemplar.observaciones = observaciones[:255]
         prestamo.save()
         prestamo.ejemplar.save()
+
+        # Detecta si quedaron reservas pendientes sin ningún ejemplar activo en circulación
+        reservas_sin_ejemplar = (
+            Reserva.objects.filter(libro=libro, estado='PENDIENTE').exists()
+            and not Ejemplar.objects.filter(
+                libro=libro,
+                estado__in=['DISPONIBLE', 'RESERVADO', 'PRESTADO', 'EN_REPARACION'],
+            ).exists()
+        )
 
         # Notifica al usuario lector sobre el cargo de reposición
         Notificacion.objects.create(
@@ -580,4 +614,9 @@ def registrar_incidente_ejemplar(request, prestamo_id):
         f"Se registró {etiqueta_incidente} del ejemplar [{prestamo.ejemplar.codigo_inventario}]. "
         f"Multa por costo de reposición: ${multa_incidente.monto:.2f} para {prestamo.usuario.username}.{aviso_extra}"
     )
+    if reservas_sin_ejemplar:
+        messages.info(
+            request,
+            f"Aviso: «{libro.titulo}» tiene reservas pendientes pero ya no cuenta con ejemplares en circulación."
+        )
     return redirect('gestion_prestamos')

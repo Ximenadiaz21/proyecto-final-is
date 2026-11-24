@@ -68,12 +68,25 @@ def reportes(request):
 
     # =========================================================================
     # REPORTE 2: Libros más solicitados (RF-14)
+    # Solo contabiliza préstamos efectivos (excluye cancelados y expirados)
+    # y reservas válidas (excluye canceladas y expiradas).
     # =========================================================================
+    estados_prestamo_efectivo = ['ACTIVO', 'VENCIDO', 'DEVUELTO', 'PERDIDO']
+    estados_reserva_efectiva = ['PENDIENTE', 'DISPONIBLE', 'ATENDIDA']
+
     libros_mas_solicitados = Libro.objects.select_related(
         'editorial', 'categoria'
     ).annotate(
-        total_prestamos=Count('ejemplar__prestamo', distinct=True),
-        total_reservas=Count('reserva', distinct=True),
+        total_prestamos=Count(
+            'ejemplar__prestamo',
+            filter=Q(ejemplar__prestamo__estado__in=estados_prestamo_efectivo),
+            distinct=True,
+        ),
+        total_reservas=Count(
+            'reserva',
+            filter=Q(reserva__estado__in=estados_reserva_efectiva),
+            distinct=True,
+        ),
     ).filter(
         Q(total_prestamos__gt=0) | Q(total_reservas__gt=0)
     ).order_by('-total_prestamos', '-total_reservas', 'titulo')[:10]
@@ -107,7 +120,8 @@ def reportes(request):
     # Total efectivamente cobrado en caja (incluyendo pagos totales y parciales)
     total_cobrado = Pago.objects.aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
     total_pendiente_cobro = sum((m.saldo for m in multas_pendientes), Decimal('0.00'))
-    total_condonado = sum((m.monto for m in multas_condonadas), Decimal('0.00'))
+    # En multas condonadas solo se cuenta el saldo realmente condonado (evita doble conteo si hubo pagos parciales)
+    total_condonado = sum((max(m.saldo, Decimal('0.00')) for m in multas_condonadas), Decimal('0.00'))
 
     # Últimos pagos registrados en mostrador
     ultimos_pagos = Pago.objects.select_related(

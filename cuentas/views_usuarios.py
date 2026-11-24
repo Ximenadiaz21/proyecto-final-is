@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -183,33 +184,62 @@ def cambiar_bloqueo(request, usuario_id):
 @bibliotecario_requerido
 @require_POST
 def cambiar_estado_usuario(request, usuario_id):
-    from prestamos.models import Prestamo
+    from multas.models import Multa
+    from prestamos.models import Prestamo, Reserva
 
-    objetivo = get_object_or_404(Usuario, id=usuario_id)
+    with transaction.atomic():
+        objetivo = get_object_or_404(Usuario.objects.select_for_update(), id=usuario_id)
 
-    if objetivo.pk == request.user.pk:
-        messages.error(request, "No puedes dar de baja tu propia cuenta.")
-        return redirect('gestion_usuarios')
-
-    if objetivo.is_active:
-        tiene_prestamos = Prestamo.objects.filter(
-            usuario=objetivo,
-            estado__in=['ACTIVO', 'VENCIDO'],
-        ).exists()
-        if tiene_prestamos:
-            messages.error(
-                request,
-                f"No se puede dar de baja a {objetivo.username} porque tiene préstamos activos o vencidos."
-            )
+        if objetivo.pk == request.user.pk:
+            messages.error(request, "No puedes dar de baja tu propia cuenta.")
             return redirect('gestion_usuarios')
 
-        objetivo.is_active = False
-        objetivo.save(update_fields=['is_active'])
-        messages.success(request, f"Usuario {objetivo.username} dado de baja (inactivo).")
-    else:
-        objetivo.is_active = True
-        objetivo.save(update_fields=['is_active'])
-        messages.success(request, f"Usuario {objetivo.username} reactivado correctamente.")
+        if objetivo.is_active:
+            tiene_prestamos = Prestamo.objects.filter(
+                usuario=objetivo,
+                estado__in=['SOLICITADO', 'ACTIVO', 'VENCIDO'],
+            ).exists()
+            if tiene_prestamos:
+                messages.error(
+                    request,
+                    f"No se puede dar de baja a {objetivo.username} porque tiene préstamos "
+                    "solicitados, activos o vencidos."
+                )
+                return redirect('gestion_usuarios')
+
+            tiene_reserva_apartada = Reserva.objects.filter(
+                usuario=objetivo,
+                estado='DISPONIBLE',
+            ).exists()
+            if tiene_reserva_apartada:
+                messages.error(
+                    request,
+                    f"No se puede dar de baja a {objetivo.username} porque tiene una reserva "
+                    "con ejemplar apartado. Cancélala o atiéndela primero."
+                )
+                return redirect('gestion_usuarios')
+
+            tiene_multas = Multa.objects.filter(
+                usuario=objetivo,
+                estado='PENDIENTE',
+            ).exists()
+            if tiene_multas:
+                messages.error(
+                    request,
+                    f"No se puede dar de baja a {objetivo.username} porque tiene multas pendientes."
+                )
+                return redirect('gestion_usuarios')
+
+            # Cancela reservas en espera (PENDIENTE) para no asignar ejemplares a una cuenta inactiva
+            Reserva.objects.filter(usuario=objetivo, estado='PENDIENTE').update(estado='CANCELADA')
+
+            objetivo.is_active = False
+            objetivo.save(update_fields=['is_active'])
+            messages.success(request, f"Usuario {objetivo.username} dado de baja (inactivo).")
+        else:
+            objetivo.is_active = True
+            objetivo.save(update_fields=['is_active'])
+            messages.success(request, f"Usuario {objetivo.username} reactivado correctamente.")
 
     return redirect('gestion_usuarios')
 

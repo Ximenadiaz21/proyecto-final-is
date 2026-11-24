@@ -523,3 +523,94 @@ class ReglasNegocioPrestamosTests(TestCase):
         self.assertEqual(self.politica_estudiante.max_libros, 4)
         self.assertEqual(self.politica_estudiante.multa_por_dia, Decimal('15.00'))
         self.assertEqual(self.politica_estudiante.horas_para_recoger, 72)
+
+    # CU-32: Reporte de libros más solicitados excluye préstamos CANCELADO y EXPIRADO
+    def test_cu32_reporte_libros_mas_solicitados_excluye_cancelados_y_expirados(self):
+        Prestamo.objects.create(usuario=self.estudiante, ejemplar=self.ejemplares[0], estado='DEVUELTO')
+        Prestamo.objects.create(usuario=self.estudiante, ejemplar=self.ejemplares[0], estado='CANCELADO')
+        Prestamo.objects.create(usuario=self.estudiante, ejemplar=self.ejemplares[0], estado='EXPIRADO')
+        Prestamo.objects.create(usuario=self.estudiante_dos, ejemplar=self.ejemplares[1], estado='CANCELADO')
+
+        self.client.force_login(self.bibliotecario)
+        respuesta = self.client.get(reverse('reportes'))
+        self.assertEqual(respuesta.status_code, 200)
+
+        top = list(respuesta.context['libros_mas_solicitados'])
+        self.assertEqual(len(top), 1)
+        self.assertEqual(top[0].id, self.libros[0].id)
+        self.assertEqual(top[0].total_prestamos, 1)
+
+    # CU-23: entregar_prestamo rechaza cuenta inactiva o ejemplar no RESERVADO
+    def test_cu23_entregar_prestamo_rechaza_usuario_inactivo_y_ejemplar_no_reservado(self):
+        self.ejemplares[0].estado = 'RESERVADO'
+        self.ejemplares[0].save()
+        prestamo = Prestamo.objects.create(
+            usuario=self.estudiante,
+            ejemplar=self.ejemplares[0],
+            estado='SOLICITADO',
+            fecha_limite_recoger=timezone.now() + timedelta(hours=24),
+        )
+
+        self.client.force_login(self.bibliotecario)
+
+        # 1. Usuario inactivo -> no entrega
+        self.estudiante.is_active = False
+        self.estudiante.save(update_fields=['is_active'])
+        self.client.post(reverse('entregar_prestamo', args=[prestamo.id]))
+        prestamo.refresh_from_db()
+        self.assertEqual(prestamo.estado, 'SOLICITADO')
+
+        # 2. Usuario activo, pero ejemplar EN_REPARACION -> no entrega
+        self.estudiante.is_active = True
+        self.estudiante.save(update_fields=['is_active'])
+        self.ejemplares[0].estado = 'EN_REPARACION'
+        self.ejemplares[0].save(update_fields=['estado'])
+        self.client.post(reverse('entregar_prestamo', args=[prestamo.id]))
+        prestamo.refresh_from_db()
+        self.assertEqual(prestamo.estado, 'SOLICITADO')
+
+    # CU-06 paso 4: detalle_libro informa inelegibilidad antes del resumen de confirmación
+    def test_cu06_detalle_libro_valida_elegibilidad_antes_de_confirmar(self):
+        prestamo_vencido = Prestamo.objects.create(
+            usuario=self.estudiante,
+            ejemplar=self.ejemplares[1],
+            estado='VENCIDO',
+            fecha_vencimiento=timezone.localdate() - timedelta(days=2),
+        )
+        self.assertIsNotNone(prestamo_vencido.id)
+
+        self.client.force_login(self.estudiante)
+        respuesta = self.client.get(reverse('detalle_libro', args=[self.libros[0].id]))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertIn('vencidos', respuesta.context['motivo_no_puede_solicitar'])
+        self.assertNotContains(respuesta, 'id="modalConfirmarSolicitud"')
+
+    # CU-11 y CU-30: Flujo de reservar libro agotado y atender reserva
+    def test_cu11_y_cu30_reservar_libro_y_atender_reserva(self):
+        self.ejemplares[0].estado = 'PRESTADO'
+        self.ejemplares[0].save()
+
+        self.client.force_login(self.estudiante)
+        # Reserva el libro sin ejemplares disponibles
+        self.client.post(reverse('reservar_libro', args=[self.libros[0].id]))
+        reserva = Reserva.objects.get(usuario=self.estudiante, libro=self.libros[0])
+        self.assertEqual(reserva.estado, 'PENDIENTE')
+
+        # Segundo intento del mismo usuario no duplica la reserva
+        self.client.post(reverse('reservar_libro', args=[self.libros[0].id]))
+        self.assertEqual(Reserva.objects.filter(usuario=self.estudiante, libro=self.libros[0]).count(), 1)
+
+        # Se libera el ejemplar -> reserva pasa a DISPONIBLE y luego el bibliotecario la atiende
+        liberar_o_asignar_ejemplar(self.ejemplares[0])
+        reserva.refresh_from_db()
+        self.assertEqual(reserva.estado, 'DISPONIBLE')
+
+        self.client.force_login(self.bibliotecario)
+        self.client.post(reverse('atender_reserva', args=[reserva.id]))
+        reserva.refresh_from_db()
+        self.ejemplares[0].refresh_from_db()
+        self.assertEqual(reserva.estado, 'ATENDIDA')
+        self.assertEqual(self.ejemplares[0].estado, 'PRESTADO')
+        self.assertTrue(
+            Prestamo.objects.filter(usuario=self.estudiante, ejemplar=self.ejemplares[0], estado='ACTIVO').exists()
+        )

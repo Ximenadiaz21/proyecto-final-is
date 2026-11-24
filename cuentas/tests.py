@@ -188,3 +188,61 @@ class CuentasYRolesTests(TestCase):
         notif.refresh_from_db()
         self.assertFalse(notif.leida)
 
+    # CU-20: Baja lógica bloqueada con solicitud, reserva apartada o multa pendiente, y cancela reservas en espera
+    def test_cu20_baja_logica_bloquea_solicitud_reserva_multa_y_cancela_pendientes(self):
+        from decimal import Decimal
+        from catalogo.models import Categoria, Editorial, Ejemplar, Libro
+        from multas.models import Multa
+        from prestamos.models import Prestamo, Reserva
+
+        ed = Editorial.objects.create(nombre='Ed Baja')
+        cat = Categoria.objects.create(nombre='Cat Baja')
+        libro = Libro.objects.create(
+            isbn='9789999999992', titulo='Libro Baja', editorial=ed, categoria=cat,
+            costo_reposicion=Decimal('200.00'), activo=True,
+        )
+        ejemplar = Ejemplar.objects.create(libro=libro, codigo_inventario='EJ-BAJA-01', estado='RESERVADO')
+        self.client.force_login(self.bibliotecario)
+
+        # 1. Con préstamo SOLICITADO no permite baja
+        prestamo = Prestamo.objects.create(usuario=self.estudiante, ejemplar=ejemplar, estado='SOLICITADO')
+        self.client.post(reverse('cambiar_estado_usuario', args=[self.estudiante.id]))
+        self.estudiante.refresh_from_db()
+        self.assertTrue(self.estudiante.is_active)
+
+        prestamo.estado = 'DEVUELTO'
+        prestamo.save()
+
+        # 2. Con reserva DISPONIBLE (ejemplar apartado) no permite baja
+        reserva_disp = Reserva.objects.create(
+            usuario=self.estudiante, libro=libro, ejemplar_asignado=ejemplar, estado='DISPONIBLE'
+        )
+        self.client.post(reverse('cambiar_estado_usuario', args=[self.estudiante.id]))
+        self.estudiante.refresh_from_db()
+        self.assertTrue(self.estudiante.is_active)
+
+        reserva_disp.estado = 'CANCELADA'
+        reserva_disp.ejemplar_asignado = None
+        reserva_disp.save()
+
+        # 3. Con multa PENDIENTE no permite baja
+        multa = Multa.objects.create(
+            prestamo=prestamo, usuario=self.estudiante, motivo='RETRASO',
+            dias_retraso=2, monto=Decimal('20.00'), estado='PENDIENTE',
+        )
+        self.client.post(reverse('cambiar_estado_usuario', args=[self.estudiante.id]))
+        self.estudiante.refresh_from_db()
+        self.assertTrue(self.estudiante.is_active)
+
+        multa.estado = 'PAGADA'
+        multa.save()
+
+        # 4. Con solo reserva PENDIENTE en cola: sí da de baja y cancela la reserva pendiente
+        reserva_pend = Reserva.objects.create(usuario=self.estudiante, libro=libro, estado='PENDIENTE')
+        self.client.post(reverse('cambiar_estado_usuario', args=[self.estudiante.id]))
+        self.estudiante.refresh_from_db()
+        reserva_pend.refresh_from_db()
+        self.assertFalse(self.estudiante.is_active)
+        self.assertEqual(reserva_pend.estado, 'CANCELADA')
+
+

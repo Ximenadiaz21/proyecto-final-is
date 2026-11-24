@@ -78,8 +78,53 @@ class MultasYPagosTests(TestCase):
 
         self.assertEqual(self.prestamo.estado, 'PERDIDO')
         self.assertEqual(self.ejemplar.estado, 'PERDIDO')
+        self.assertIsNone(self.prestamo.fecha_devolucion)
         self.assertEqual(multa.monto, Decimal('420.00'))
         self.assertEqual(multa.estado, 'PENDIENTE')
+
+    # RN-13 y CU-27: Caso DANIO pasa el préstamo a DEVUELTO con fecha_devolucion y el ejemplar a EN_REPARACION
+    def test_rn13_incidente_danio_deja_ejemplar_en_reparacion(self):
+        self.client.force_login(self.bibliotecario)
+        self.client.post(reverse('registrar_incidente_ejemplar', args=[self.prestamo.id]), {
+            'motivo': 'DANIO',
+            'observaciones': 'Hojas desprendidas.',
+        })
+
+        self.prestamo.refresh_from_db()
+        self.ejemplar.refresh_from_db()
+        multa = Multa.objects.get(prestamo=self.prestamo, motivo='DANIO')
+
+        self.assertEqual(self.prestamo.estado, 'DEVUELTO')
+        self.assertIsNotNone(self.prestamo.fecha_devolucion)
+        self.assertEqual(self.ejemplar.estado, 'EN_REPARACION')
+        self.assertEqual(multa.monto, Decimal('420.00'))
+
+    # CU-32 / RF-14: Reporte 4 no duplica contabilidad cuando una multa tiene pago parcial y luego se condona
+    def test_cu32_reporte_multas_sin_doble_conteo_pago_parcial_y_condonacion(self):
+        multa = Multa.objects.create(
+            prestamo=self.prestamo,
+            usuario=self.estudiante,
+            motivo='RETRASO',
+            dias_retraso=30,
+            monto=Decimal('300.00'),
+            estado='PENDIENTE',
+        )
+        self.client.force_login(self.bibliotecario)
+
+        # Abona $100 y condona los $200 restantes
+        self.client.post(reverse('registrar_pago', args=[multa.id]), {
+            'monto': '100.00',
+            'metodo': 'EFECTIVO',
+        })
+        self.client.post(reverse('condonar_multa', args=[multa.id]), {
+            'justificacion': 'Convenio aprobado por dirección.',
+        })
+
+        respuesta = self.client.get(reverse('reportes'))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta.context['total_cobrado'], Decimal('100.00'))
+        self.assertEqual(respuesta.context['total_condonado'], Decimal('200.00'))
+        self.assertEqual(respuesta.context['total_pendiente_cobro'], Decimal('0.00'))
 
     # CU-28: Verifica el registro de pagos parciales y liquidación total de una multa
     def test_cu28_pago_parcial_y_total_de_multa(self):
