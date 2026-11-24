@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'catalogo',
     'prestamos',
     'multas',
+    'reportes',
 ]
 
 MIDDLEWARE = [

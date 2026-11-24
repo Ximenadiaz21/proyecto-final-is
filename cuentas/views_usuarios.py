@@ -1,10 +1,7 @@
 import csv
 import io
-from functools import wraps
 
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
@@ -15,6 +12,7 @@ from django.views.decorators.http import require_POST
 
 from .forms import UsuarioForm
 from .models import Usuario, Carrera, Departamento
+from .permisos import bibliotecario_requerido, es_bibliotecario  # noqa: F401
 
 MAX_FILAS_CSV = 500
 MAX_BYTES_CSV = 1_000_000
@@ -23,22 +21,6 @@ COLUMNAS_CSV = [
     'carrera', 'semestre', 'num_empleado', 'departamento', 'password',
 ]
 COLUMNAS_OBLIGATORIAS = {'username', 'nombre', 'apellidos', 'correo', 'tipo'}
-
-
-# Revisa que el usuario sea un bibliotecario activo y no esté bloqueado
-def es_bibliotecario(usuario):
-    return usuario.is_authenticated and usuario.tipo_usuario == 'BIBLIOTECARIO' and not usuario.bloqueado
-
-
-# Deja pasar solo a bibliotecarios que no estén bloqueados
-def bibliotecario_requerido(vista):
-    @wraps(vista)
-    def envoltura(request, *args, **kwargs):
-        if not es_bibliotecario(request.user):
-            raise PermissionDenied
-        return vista(request, *args, **kwargs)
-
-    return login_required(envoltura)
 
 
 # Lista los usuarios con buscador, filtros y paginación (CU-20)

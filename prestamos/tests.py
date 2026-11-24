@@ -636,3 +636,123 @@ class ReglasNegocioPrestamosTests(TestCase):
         # Verifica que actualizado_en usa auto_now=True
         campo = PoliticaPrestamo._meta.get_field('actualizado_en')
         self.assertTrue(campo.auto_now)
+
+    # CU-08 + RN-12: Cancelar solicitud libera ejemplar o lo asigna al siguiente en cola FIFO
+    def test_cu08_cancelar_solicitud_libera_o_reasigna_fifo(self):
+        self.ejemplares[0].estado = 'RESERVADO'
+        self.ejemplares[0].save()
+        solicitud = Prestamo.objects.create(
+            usuario=self.estudiante,
+            ejemplar=self.ejemplares[0],
+            estado='SOLICITADO',
+            fecha_limite_recoger=timezone.now() + timedelta(hours=24),
+        )
+        reserva_cola = Reserva.objects.create(
+            usuario=self.estudiante_dos,
+            libro=self.libros[0],
+            estado='PENDIENTE',
+        )
+
+        self.client.force_login(self.estudiante)
+        self.client.post(reverse('cancelar_solicitud', args=[solicitud.id]))
+
+        solicitud.refresh_from_db()
+        reserva_cola.refresh_from_db()
+        self.ejemplares[0].refresh_from_db()
+        self.assertEqual(solicitud.estado, 'CANCELADO')
+        self.assertEqual(reserva_cola.estado, 'DISPONIBLE')
+        self.assertEqual(reserva_cola.ejemplar_asignado_id, self.ejemplares[0].id)
+        self.assertEqual(self.ejemplares[0].estado, 'RESERVADO')
+
+    # CU-12 + RN-12: Cancelar reserva DISPONIBLE reasigna el ejemplar al siguiente en cola FIFO
+    def test_cu12_cancelar_reserva_disponible_reasigna_fifo(self):
+        ahora = timezone.now()
+        self.ejemplares[0].estado = 'RESERVADO'
+        self.ejemplares[0].save()
+
+        reserva_1 = Reserva.objects.create(
+            usuario=self.estudiante,
+            libro=self.libros[0],
+            ejemplar_asignado=self.ejemplares[0],
+            estado='DISPONIBLE',
+            fecha_reserva=ahora - timedelta(hours=5),
+            fecha_expiracion=ahora + timedelta(hours=24),
+        )
+        reserva_2 = Reserva.objects.create(
+            usuario=self.estudiante_dos,
+            libro=self.libros[0],
+            estado='PENDIENTE',
+            fecha_reserva=ahora - timedelta(hours=2),
+        )
+
+        self.client.force_login(self.estudiante)
+        self.client.post(reverse('cancelar_reserva', args=[reserva_1.id]))
+
+        reserva_1.refresh_from_db()
+        reserva_2.refresh_from_db()
+        self.ejemplares[0].refresh_from_db()
+        self.assertEqual(reserva_1.estado, 'CANCELADA')
+        self.assertIsNone(reserva_1.ejemplar_asignado)
+        self.assertEqual(reserva_2.estado, 'DISPONIBLE')
+        self.assertEqual(reserva_2.ejemplar_asignado_id, self.ejemplares[0].id)
+        self.assertEqual(self.ejemplares[0].estado, 'RESERVADO')
+
+    # RN-02 y RN-03 para Profesor (10 libros simultáneos y 2 renovaciones) + reserva DISPONIBLE en RN-02
+    def test_rn02_rn03_profesor_limites_y_reserva_disponible_cuenta_en_limite(self):
+        from . import servicios
+        from .servicios import ReglaNegocioError
+
+        # 1. Profesor: permite hasta 2 renovaciones y rechaza la 3ª (RN-03)
+        prestamo_prof = Prestamo.objects.create(
+            usuario=self.profesor,
+            ejemplar=self.ejemplares[0],
+            estado='ACTIVO',
+            fecha_prestamo=timezone.now(),
+            fecha_vencimiento=timezone.localdate() + timedelta(days=20),
+            num_renovaciones=0,
+        )
+        servicios.renovar_prestamo(prestamo_prof.id, self.profesor)
+        servicios.renovar_prestamo(prestamo_prof.id, self.profesor)
+        prestamo_prof.refresh_from_db()
+        self.assertEqual(prestamo_prof.num_renovaciones, 2)
+        with self.assertRaises(ReglaNegocioError):
+            servicios.renovar_prestamo(prestamo_prof.id, self.profesor)
+
+        # 2. Profesor: 10 libros simultáneos permitidos, rechaza el 11º (RN-02)
+        for i in range(1, 11):
+            libro_extra = Libro.objects.create(
+                isbn=f'97810000000{i:02d}',
+                titulo=f'Libro Prof {i}',
+                editorial=self.editorial,
+                categoria=self.categoria,
+                costo_reposicion=Decimal('200.00'),
+                activo=True,
+            )
+            ej_extra = Ejemplar.objects.create(
+                libro=libro_extra,
+                codigo_inventario=f'INV-PROF-{i:02d}',
+                estado='DISPONIBLE',
+            )
+            if i < 10:
+                servicios.solicitar_prestamo(self.profesor.pk, libro_extra)
+            else:
+                # Ya tiene 10 (prestamo_prof + 9 solicitados) -> el 11º lanza ReglaNegocioError
+                with self.assertRaises(ReglaNegocioError):
+                    servicios.solicitar_prestamo(self.profesor.pk, libro_extra)
+                ej_extra.refresh_from_db()
+                self.assertEqual(ej_extra.estado, 'DISPONIBLE')
+
+        # 3. Estudiante: 2 préstamos + 1 reserva DISPONIBLE = 3 (tope RN-02) -> rechaza nuevo préstamo
+        Prestamo.objects.create(usuario=self.estudiante, ejemplar=self.ejemplares[1], estado='ACTIVO')
+        Prestamo.objects.create(usuario=self.estudiante, ejemplar=self.ejemplares[2], estado='ACTIVO')
+        ej_res = Ejemplar.objects.create(
+            libro=self.libros[0], codigo_inventario='INV-RES-RN02', estado='RESERVADO'
+        )
+        Reserva.objects.create(
+            usuario=self.estudiante,
+            libro=self.libros[0],
+            ejemplar_asignado=ej_res,
+            estado='DISPONIBLE',
+        )
+        with self.assertRaises(ReglaNegocioError):
+            servicios.solicitar_prestamo(self.estudiante.pk, self.libros[3])

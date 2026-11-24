@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from catalogo.models import Ejemplar
 from cuentas.models import Notificacion
+from cuentas.servicios import notificar
 from prestamos.models import Prestamo, Reserva
 from prestamos.reglas import liberar_o_asignar_ejemplar
 
@@ -52,11 +53,9 @@ class Command(BaseCommand):
         verbo_aviso = 'Se enviarían' if simular else 'Se enviaron'
         self.stdout.write(self.style.SUCCESS(f"{verbo_aviso} {avisos} recordatorio(s) de vencimiento."))
 
-    # Guarda un aviso para el usuario
+    # Guarda un aviso para el usuario y programa el correo (RF-15)
     def _notificar(self, usuario, tipo, mensaje):
-        Notificacion.objects.create(
-            usuario=usuario, tipo=tipo, mensaje=mensaje, leida=False, fecha=self.ahora
-        )
+        notificar(usuario=usuario, tipo=tipo, mensaje=mensaje, fecha=self.ahora)
 
     # Libera un ejemplar apartado o lo asigna a la siguiente reserva en cola FIFO (RN-12)
     def _liberar_ejemplar(self, ejemplar_id):

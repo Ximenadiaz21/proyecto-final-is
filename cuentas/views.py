@@ -28,16 +28,10 @@ def panel_usuario(request):
     else:
         titulo = 'Panel de usuario'
 
-    notificaciones_no_leidas = Notificacion.objects.filter(
-        usuario=usuario,
-        leida=False
-    ).count()
-
-    # Envía los datos al HTML
+    # Envía los datos al HTML (notificaciones_no_leidas ya lo inyecta el context processor)
     contexto = {
         'usuario': usuario,
         'titulo': titulo,
-        'notificaciones_no_leidas': notificaciones_no_leidas,
     }
 
     return render(request, 'panel.html', contexto)

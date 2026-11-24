@@ -104,6 +104,7 @@ def liberar_o_asignar_ejemplar(ejemplar, ahora=None):
     Devuelve la Reserva asignada o None.
     """
     from cuentas.models import Notificacion
+    from cuentas.servicios import notificar
     from .models import PoliticaPrestamo, Reserva
 
     ahora = ahora or timezone.now()
@@ -136,15 +137,14 @@ def liberar_o_asignar_ejemplar(ejemplar, ahora=None):
     ejemplar.estado = 'RESERVADO'
     ejemplar.save()
 
-    Notificacion.objects.create(
+    notificar(
         usuario=reserva.usuario,
-        tipo='RESERVA_DISPONIBLE',
+        tipo=Notificacion.Tipo.RESERVA_DISPONIBLE,
         mensaje=(
             f'Tu reserva de "{ejemplar.libro.titulo}" ya esta disponible. '
             f'Recogela antes del '
             f'{timezone.localtime(reserva.fecha_expiracion):%d/%m/%Y %H:%M}.'
         ),
-        leida=False,
         fecha=ahora,
     )
     return reserva

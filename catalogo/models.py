@@ -90,20 +90,26 @@ class LibroAutor(models.Model):
 
 
 class Ejemplar(models.Model):
-    ESTADOS = [
-        ('DISPONIBLE', 'Disponible'),
-        ('RESERVADO', 'Reservado'),
-        ('PRESTADO', 'Prestado'),
-        ('EN_REPARACION', 'En reparación'),
-        ('PERDIDO', 'Perdido'),
-        ('BAJA', 'Baja'),
-    ]
+    class Estado(models.TextChoices):
+        DISPONIBLE = 'DISPONIBLE', 'Disponible'
+        RESERVADO = 'RESERVADO', 'Reservado'
+        PRESTADO = 'PRESTADO', 'Prestado'
+        EN_REPARACION = 'EN_REPARACION', 'En reparación'
+        PERDIDO = 'PERDIDO', 'Perdido'
+        BAJA = 'BAJA', 'Baja'
+
+    ESTADOS = Estado.choices
 
     id = models.BigAutoField(primary_key=True)
     libro = models.ForeignKey('Libro', models.PROTECT)
     codigo_inventario = models.CharField(unique=True, max_length=30)
     ubicacion = models.CharField(max_length=50, blank=True, null=True)
-    estado = models.CharField(max_length=15, choices=ESTADOS, default='DISPONIBLE', db_index=True)
+    estado = models.CharField(
+        max_length=15,
+        choices=Estado.choices,
+        default=Estado.DISPONIBLE,
+        db_index=True,
+    )
     fecha_adquisicion = models.DateField(blank=True, null=True)
     observaciones = models.CharField(max_length=255, blank=True, null=True)
 
@@ -112,7 +118,12 @@ class Ejemplar(models.Model):
         db_table_comment = 'Copia física de un libro'
         constraints = [
             models.CheckConstraint(
-                condition=Q(estado__in=['DISPONIBLE', 'RESERVADO', 'PRESTADO', 'EN_REPARACION', 'PERDIDO', 'BAJA']),
+                condition=Q(
+                    estado__in=[
+                        'DISPONIBLE', 'RESERVADO', 'PRESTADO',
+                        'EN_REPARACION', 'PERDIDO', 'BAJA',
+                    ]
+                ),
                 name='chk_ejemplar_estado',
             ),
         ]

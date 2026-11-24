@@ -5,19 +5,40 @@ from django.utils import timezone
 
 
 class Multa(models.Model):
-    MOTIVOS = [('RETRASO', 'Retraso'), ('DANIO', 'Daño'), ('PERDIDA', 'Pérdida')]
-    ESTADOS = [('PENDIENTE', 'Pendiente'), ('PAGADA', 'Pagada'), ('CONDONADA', 'Condonada')]
+    class Motivo(models.TextChoices):
+        RETRASO = 'RETRASO', 'Retraso'
+        DANIO = 'DANIO', 'Daño'
+        PERDIDA = 'PERDIDA', 'Pérdida'
+
+    class Estado(models.TextChoices):
+        PENDIENTE = 'PENDIENTE', 'Pendiente'
+        PAGADA = 'PAGADA', 'Pagada'
+        CONDONADA = 'CONDONADA', 'Condonada'
+
+    MOTIVOS = Motivo.choices
+    ESTADOS = Estado.choices
 
     id = models.BigAutoField(primary_key=True)
     prestamo = models.ForeignKey('prestamos.Prestamo', models.PROTECT)
     usuario = models.ForeignKey('cuentas.Usuario', models.PROTECT)
-    motivo = models.CharField(max_length=10, choices=MOTIVOS)
+    motivo = models.CharField(max_length=10, choices=Motivo.choices)
     dias_retraso = models.PositiveSmallIntegerField(default=0)
     monto = models.DecimalField(max_digits=10, decimal_places=2)
-    estado = models.CharField(max_length=10, choices=ESTADOS, default='PENDIENTE', db_index=True)
+    estado = models.CharField(
+        max_length=10,
+        choices=Estado.choices,
+        default=Estado.PENDIENTE,
+        db_index=True,
+    )
     fecha_generacion = models.DateTimeField(default=timezone.now)
     justificacion_condonacion = models.CharField(max_length=255, blank=True, null=True)
-    condonada_por = models.ForeignKey('cuentas.Usuario', models.SET_NULL, related_name='multa_condonada_por_set', blank=True, null=True)
+    condonada_por = models.ForeignKey(
+        'cuentas.Usuario',
+        models.SET_NULL,
+        related_name='multa_condonada_por_set',
+        blank=True,
+        null=True,
+    )
 
     class Meta:
         db_table = 'multa'
@@ -41,7 +62,10 @@ class Multa(models.Model):
             models.CheckConstraint(
                 condition=(
                     ~Q(estado='CONDONADA')
-                    | (Q(justificacion_condonacion__isnull=False) & ~Q(justificacion_condonacion=''))
+                    | (
+                        Q(justificacion_condonacion__isnull=False)
+                        & ~Q(justificacion_condonacion='')
+                    )
                 ),
                 name='chk_multa_condonacion_justificada',
             ),
@@ -52,17 +76,24 @@ class Multa(models.Model):
         super().clean()
         if self.estado == 'CONDONADA' and not (self.justificacion_condonacion or '').strip():
             raise ValidationError({
-                'justificacion_condonacion': 'La justificación es obligatoria para condonar una multa (RN-14).'
+                'justificacion_condonacion': (
+                    'La justificación es obligatoria para condonar una multa (RN-14).'
+                )
             })
 
 
 class Pago(models.Model):
-    METODOS = [('EFECTIVO', 'Efectivo'), ('TARJETA', 'Tarjeta'), ('TRANSFERENCIA', 'Transferencia')]
+    class Metodo(models.TextChoices):
+        EFECTIVO = 'EFECTIVO', 'Efectivo'
+        TARJETA = 'TARJETA', 'Tarjeta'
+        TRANSFERENCIA = 'TRANSFERENCIA', 'Transferencia'
+
+    METODOS = Metodo.choices
 
     id = models.BigAutoField(primary_key=True)
     multa = models.ForeignKey(Multa, models.PROTECT)
     monto = models.DecimalField(max_digits=10, decimal_places=2)
-    metodo = models.CharField(max_length=15, choices=METODOS)
+    metodo = models.CharField(max_length=15, choices=Metodo.choices)
     folio_recibo = models.CharField(unique=True, max_length=30)
     fecha_pago = models.DateTimeField(default=timezone.now)
     registrado_por = models.ForeignKey('cuentas.Usuario', models.PROTECT)

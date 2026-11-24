@@ -109,13 +109,15 @@ class CuentasYRolesTests(TestCase):
         self.assertEqual(sugerencia.estado, 'APROBADA')
         self.assertTrue(Notificacion.objects.filter(usuario=self.profesor_user).exists())
 
-    # RF-15: Al crear una notificación, el sistema también dispara el envío por correo al confirmar la transacción
+    # RF-15: El servicio notificar() crea el registro y envía correo al confirmar la transacción
     def test_rf15_notificacion_envia_correo(self):
+        from .servicios import notificar
+
         mail.outbox.clear()
         with self.captureOnCommitCallbacks(execute=True):
-            Notificacion.objects.create(
+            notificar(
                 usuario=self.estudiante,
-                tipo='RESERVA_DISPONIBLE',
+                tipo=Notificacion.Tipo.RESERVA_DISPONIBLE,
                 mensaje='Tu reserva de "Diseño de Bases de Datos" ya está disponible.',
             )
         self.assertEqual(len(mail.outbox), 1)
@@ -244,5 +246,47 @@ class CuentasYRolesTests(TestCase):
         reserva_pend.refresh_from_db()
         self.assertFalse(self.estudiante.is_active)
         self.assertEqual(reserva_pend.estado, 'CANCELADA')
+
+    # CU-01 y CU-02: Inicio de sesión válido/inválido y cierre de sesión
+    def test_cu01_cu02_login_y_logout(self):
+        # Credenciales incorrectas no autentican
+        resp_mal = self.client.post(reverse('login'), {
+            'username': self.estudiante.username,
+            'password': 'incorrecta',
+        })
+        self.assertEqual(resp_mal.status_code, 200)
+        self.assertFalse(resp_mal.wsgi_request.user.is_authenticated)
+
+        # Credenciales válidas redirigen al panel
+        resp_ok = self.client.post(reverse('login'), {
+            'username': self.estudiante.username,
+            'password': 'password123',
+        })
+        self.assertRedirects(resp_ok, reverse('panel'))
+
+        # Cierre de sesión por POST redirige al login y cierra la sesión
+        resp_out = self.client.post(reverse('logout'))
+        self.assertRedirects(resp_out, reverse('login'))
+        self.assertEqual(self.client.get(reverse('panel')).status_code, 302)
+
+    # CU-03: Recuperación de contraseña envía correo con enlace de restablecimiento
+    def test_cu03_recuperar_contrasena_envia_correo(self):
+        mail.outbox.clear()
+        resp = self.client.post(reverse('password_reset'), {'email': self.estudiante.email})
+        self.assertRedirects(resp, reverse('password_reset_done'))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [self.estudiante.email])
+        self.assertIn('/recuperar-contrasena/', mail.outbox[0].body)
+
+    # RF-01 / RNF-01: Permisos uniformes 403 en vistas de lector y profesor
+    def test_permisos_uniformes_403_lector_y_profesor(self):
+        self.client.force_login(self.bibliotecario)
+        self.assertEqual(self.client.get(reverse('mis_prestamos')).status_code, 403)
+        self.assertEqual(self.client.get(reverse('mis_multas')).status_code, 403)
+        self.assertEqual(self.client.get(reverse('mis_sugerencias')).status_code, 403)
+
+        self.client.force_login(self.estudiante)
+        self.assertEqual(self.client.get(reverse('mis_sugerencias')).status_code, 403)
+
 
 

@@ -4,10 +4,14 @@ from django.utils import timezone
 
 
 class PoliticaPrestamo(models.Model):
-    TIPOS = [('ESTUDIANTE', 'Estudiante'), ('PROFESOR', 'Profesor')]
+    class TipoUsuario(models.TextChoices):
+        ESTUDIANTE = 'ESTUDIANTE', 'Estudiante'
+        PROFESOR = 'PROFESOR', 'Profesor'
+
+    TIPOS = TipoUsuario.choices
 
     id = models.BigAutoField(primary_key=True)
-    tipo_usuario = models.CharField(unique=True, max_length=15, choices=TIPOS)
+    tipo_usuario = models.CharField(unique=True, max_length=15, choices=TipoUsuario.choices)
     dias_prestamo = models.PositiveSmallIntegerField()
     max_libros = models.PositiveSmallIntegerField()
     max_renovaciones = models.PositiveSmallIntegerField()
@@ -32,28 +36,41 @@ class PoliticaPrestamo(models.Model):
 
 
 class Prestamo(models.Model):
-    ESTADOS = [
-        ('SOLICITADO', 'Solicitado'),
-        ('ACTIVO', 'Activo'),
-        ('VENCIDO', 'Vencido'),
-        ('DEVUELTO', 'Devuelto'),
-        ('CANCELADO', 'Cancelado'),
-        ('EXPIRADO', 'Expirado'),
-        ('PERDIDO', 'Perdido'),
-    ]
+    class Estado(models.TextChoices):
+        SOLICITADO = 'SOLICITADO', 'Solicitado'
+        ACTIVO = 'ACTIVO', 'Activo'
+        VENCIDO = 'VENCIDO', 'Vencido'
+        DEVUELTO = 'DEVUELTO', 'Devuelto'
+        CANCELADO = 'CANCELADO', 'Cancelado'
+        EXPIRADO = 'EXPIRADO', 'Expirado'
+        PERDIDO = 'PERDIDO', 'Perdido'
+
+    ESTADOS = Estado.choices
 
     id = models.BigAutoField(primary_key=True)
     usuario = models.ForeignKey('cuentas.Usuario', models.PROTECT)
     ejemplar = models.ForeignKey('catalogo.Ejemplar', models.PROTECT)
-    estado = models.CharField(max_length=12, choices=ESTADOS, db_index=True)
+    estado = models.CharField(max_length=12, choices=Estado.choices, db_index=True)
     fecha_solicitud = models.DateTimeField(default=timezone.now)
     fecha_limite_recoger = models.DateTimeField(blank=True, null=True)
     fecha_prestamo = models.DateTimeField(blank=True, null=True)
     fecha_vencimiento = models.DateField(blank=True, null=True, db_index=True)
     fecha_devolucion = models.DateTimeField(blank=True, null=True)
     num_renovaciones = models.PositiveSmallIntegerField(default=0)
-    entregado_por = models.ForeignKey('cuentas.Usuario', models.SET_NULL, related_name='prestamo_entregado_por_set', blank=True, null=True)
-    recibido_por = models.ForeignKey('cuentas.Usuario', models.SET_NULL, related_name='prestamo_recibido_por_set', blank=True, null=True)
+    entregado_por = models.ForeignKey(
+        'cuentas.Usuario',
+        models.SET_NULL,
+        related_name='prestamo_entregado_por_set',
+        blank=True,
+        null=True,
+    )
+    recibido_por = models.ForeignKey(
+        'cuentas.Usuario',
+        models.SET_NULL,
+        related_name='prestamo_recibido_por_set',
+        blank=True,
+        null=True,
+    )
     observaciones = models.CharField(max_length=255, blank=True, null=True)
 
     class Meta:
@@ -61,7 +78,12 @@ class Prestamo(models.Model):
         db_table_comment = 'Préstamo de un ejemplar a un usuario lector'
         constraints = [
             models.CheckConstraint(
-                condition=Q(estado__in=['SOLICITADO', 'ACTIVO', 'VENCIDO', 'DEVUELTO', 'CANCELADO', 'EXPIRADO', 'PERDIDO']),
+                condition=Q(
+                    estado__in=[
+                        'SOLICITADO', 'ACTIVO', 'VENCIDO', 'DEVUELTO',
+                        'CANCELADO', 'EXPIRADO', 'PERDIDO',
+                    ]
+                ),
                 name='chk_prestamo_estado',
             ),
         ]
@@ -82,19 +104,25 @@ class Prestamo(models.Model):
 
 
 class Reserva(models.Model):
-    ESTADOS = [
-        ('PENDIENTE', 'Pendiente'),
-        ('DISPONIBLE', 'Disponible'),
-        ('ATENDIDA', 'Atendida'),
-        ('CANCELADA', 'Cancelada'),
-        ('EXPIRADA', 'Expirada'),
-    ]
+    class Estado(models.TextChoices):
+        PENDIENTE = 'PENDIENTE', 'Pendiente'
+        DISPONIBLE = 'DISPONIBLE', 'Disponible'
+        ATENDIDA = 'ATENDIDA', 'Atendida'
+        CANCELADA = 'CANCELADA', 'Cancelada'
+        EXPIRADA = 'EXPIRADA', 'Expirada'
+
+    ESTADOS = Estado.choices
 
     id = models.BigAutoField(primary_key=True)
     usuario = models.ForeignKey('cuentas.Usuario', models.PROTECT)
     libro = models.ForeignKey('catalogo.Libro', models.PROTECT)
     ejemplar_asignado = models.ForeignKey('catalogo.Ejemplar', models.SET_NULL, blank=True, null=True)
-    estado = models.CharField(max_length=12, choices=ESTADOS, default='PENDIENTE', db_index=True)
+    estado = models.CharField(
+        max_length=12,
+        choices=Estado.choices,
+        default=Estado.PENDIENTE,
+        db_index=True,
+    )
     fecha_reserva = models.DateTimeField(default=timezone.now)
     fecha_expiracion = models.DateTimeField(blank=True, null=True)
 
@@ -107,7 +135,9 @@ class Reserva(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                condition=Q(estado__in=['PENDIENTE', 'DISPONIBLE', 'ATENDIDA', 'CANCELADA', 'EXPIRADA']),
+                condition=Q(
+                    estado__in=['PENDIENTE', 'DISPONIBLE', 'ATENDIDA', 'CANCELADA', 'EXPIRADA']
+                ),
                 name='chk_reserva_estado',
             ),
         ]

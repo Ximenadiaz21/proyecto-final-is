@@ -118,7 +118,9 @@ class LibroForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         # Muestra los nombres completos de los autores y coautores
-        etiqueta_autor = lambda autor: f'{autor.nombre} {autor.apellidos}'
+        def etiqueta_autor(autor):
+            return f'{autor.nombre} {autor.apellidos}'
+
         self.fields['autor'].label_from_instance = etiqueta_autor
         self.fields['coautores'].label_from_instance = etiqueta_autor
 

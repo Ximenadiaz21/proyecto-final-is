@@ -1,23 +1,18 @@
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .models import Notificacion, Profesor, SugerenciaAdquisicion
-from .views_usuarios import bibliotecario_requerido
+from .permisos import bibliotecario_requerido, profesor_requerido
+from .servicios import notificar
 
 
 # Permite a un profesor enviar sugerencias de adquisición y consultar las enviadas (CU-16, RF-16)
-@login_required
+@profesor_requerido
 def mis_sugerencias(request):
     usuario = request.user
-
-    # 1. Verifica que el usuario sea un profesor activo y no bloqueado
-    if usuario.tipo_usuario != 'PROFESOR':
-        messages.error(request, "Solo los profesores pueden enviar sugerencias de adquisición.")
-        return redirect('panel')
 
     if usuario.bloqueado:
         messages.error(request, "Tu cuenta está bloqueada. No puedes enviar sugerencias.")
@@ -160,15 +155,14 @@ def responder_sugerencia(request, sugerencia_id):
         verbo = 'aprobada' if nuevo_estado == 'APROBADA' else 'rechazada'
         detalle_respuesta = f" Respuesta de biblioteca: {respuesta}" if respuesta else ""
 
-        Notificacion.objects.create(
+        notificar(
             usuario=sugerencia.profesor.usuario,
-            tipo='GENERAL',
+            tipo=Notificacion.Tipo.GENERAL,
             mensaje=(
                 f"Tu sugerencia de adquisición para «{sugerencia.titulo}» fue {verbo}."
                 f"{detalle_respuesta}"
-            )[:500],
-            leida=False,
-            fecha=timezone.now()
+            ),
+            fecha=timezone.now(),
         )
 
     etiqueta = 'aprobada' if nuevo_estado == 'APROBADA' else 'rechazada'

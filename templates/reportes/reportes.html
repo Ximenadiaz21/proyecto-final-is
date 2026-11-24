@@ -28,7 +28,20 @@
                 <div class="linea-dorada"></div>
             </div>
 
-            <div class="no-print mt-2">
+            <div class="no-print mt-2 d-flex flex-wrap gap-2">
+                <a href="{% url 'exportar_reporte_csv' 'prestamos' %}?fecha_inicio={{ fecha_inicio }}&fecha_fin={{ fecha_fin }}"
+                   class="btn-borde">
+                    <i class="bi bi-filetype-csv me-1"></i> CSV Préstamos
+                </a>
+                <a href="{% url 'exportar_reporte_csv' 'libros' %}" class="btn-borde">
+                    <i class="bi bi-filetype-csv me-1"></i> CSV Libros
+                </a>
+                <a href="{% url 'exportar_reporte_csv' 'vencidos' %}" class="btn-borde">
+                    <i class="bi bi-filetype-csv me-1"></i> CSV Vencidos
+                </a>
+                <a href="{% url 'exportar_reporte_csv' 'multas' %}" class="btn-borde">
+                    <i class="bi bi-filetype-csv me-1"></i> CSV Multas
+                </a>
                 <button type="button" onclick="window.print()" class="btn-borde">
                     <i class="bi bi-printer me-1"></i> Imprimir / Guardar PDF
                 </button>

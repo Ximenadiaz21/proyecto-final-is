@@ -28,7 +28,11 @@ urlpatterns = [
     # Panel del bibliotecario para gestionar reservas (CU-30)
     path('reservas/gestion/', views_reservas.gestion_reservas, name='gestion_reservas'),
     path('reservas/<int:reserva_id>/atender/', views_reservas.atender_reserva, name='atender_reserva'),
-    path('reservas/<int:reserva_id>/cancelar-admin/', views_reservas.cancelar_reserva_bibliotecario, name='cancelar_reserva_bibliotecario'),
+    path(
+        'reservas/<int:reserva_id>/cancelar-admin/',
+        views_reservas.cancelar_reserva_bibliotecario,
+        name='cancelar_reserva_bibliotecario',
+    ),
 
     # Panel del bibliotecario para entregar, prestar en mostrador y recibir libros (CU-23, CU-24, CU-25, CU-27)
     path('gestion/', views.gestion_prestamos, name='gestion_prestamos'),

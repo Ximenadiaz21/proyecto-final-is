@@ -21,7 +21,6 @@ from cuentas.views_sugerencias import (
     gestion_sugerencias,
     responder_sugerencia,
 )
-from prestamos.views_reportes import reportes
 
 
 urlpatterns = [
@@ -74,8 +73,8 @@ urlpatterns = [
     path('sugerencias/gestion/', gestion_sugerencias, name='gestion_sugerencias'),
     path('sugerencias/<int:sugerencia_id>/responder/', responder_sugerencia, name='responder_sugerencia'),
 
-    # Reportes operativos de la biblioteca (CU-32, RF-14)
-    path('reportes/', reportes, name='reportes'),
+    # Reportes operativos de la biblioteca y exportación CSV (CU-32, RF-14)
+    path('reportes/', include('reportes.urls')),
 
     # Conecta el catálogo de libros
     path('catalogo/', include('catalogo.urls')),

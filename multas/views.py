@@ -1,7 +1,6 @@
 from decimal import Decimal, InvalidOperation
 
 from django.shortcuts import get_object_or_404, redirect, render
-from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db import transaction
@@ -10,7 +9,7 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from cuentas.views_usuarios import bibliotecario_requerido
+from cuentas.permisos import bibliotecario_requerido, lector_requerido
 from .models import Multa, Pago
 
 METODOS_VALIDOS = ['EFECTIVO', 'TARJETA', 'TRANSFERENCIA']
@@ -36,13 +35,9 @@ def con_saldos(multas):
 
 
 # Muestra las multas del usuario que inició sesión (CU-14)
-@login_required
+@lector_requerido
 def mis_multas(request):
     usuario = request.user
-
-    if usuario.tipo_usuario not in ['ESTUDIANTE', 'PROFESOR']:
-        messages.error(request, "Esta sección es solo para estudiantes y profesores.")
-        return redirect('panel')
 
     multas = con_saldos(
         Multa.objects.filter(usuario=usuario).select_related(

@@ -63,10 +63,12 @@ Proyecto final de Ingeniería de Software. Aplicación web hecha con **Django 5.
    ```
    python manage.py usuarios
    python manage.py libros
+   python manage.py demo_operacion
    ```
 
    - `usuarios`: crea estudiantes, profesores y bibliotecarios.
    - `libros`: carga 50 libros con 100 ejemplares (consulta OpenLibrary si hay internet, o usa datos locales con `--offline`).
+   - `demo_operacion` *(opcional)*: carga préstamos de ejemplo (devueltos, activos, solicitados y vencidos), reservas en cola FIFO, multas, pagos, sugerencias y notificaciones para demostrar reportes y operación desde el inicio.
 
 8. **Inicia el servidor**
 
@@ -112,6 +114,7 @@ Proyecto final de Ingeniería de Software. Aplicación web hecha con **Django 5.
 
 | Comando | Qué hace |
 |---|---|
+| `python manage.py demo_operacion` | Carga préstamos, reservas, multas, pagos, sugerencias y notificaciones de demostración (idempotente). |
 | `python manage.py procesar_vencimientos` | Marca préstamos vencidos, expira solicitudes y reservas no recogidas, y envía recordatorios (CU-34, CU-35 y CU-36). |
 | `python manage.py procesar_vencimientos --dry-run` | Muestra lo que haría sin guardar cambios. |
 | `python manage.py test` | Ejecuta las pruebas automatizadas. |
@@ -127,10 +130,11 @@ proyecto-final-is/
 ├── requirements.txt
 ├── .env.example
 ├── biblioteca/     # configuración (settings, urls)
-├── cuentas/        # Usuario, Estudiante, Profesor, Notificacion, gestión de usuarios
+├── cuentas/        # Usuario, Estudiante, Profesor, Notificacion, permisos y servicios de notificación
 ├── catalogo/       # Autor, Editorial, Categoria, Libro, Ejemplar
-├── prestamos/      # PoliticaPrestamo, Prestamo, Reserva y reglas de negocio
+├── prestamos/      # PoliticaPrestamo, Prestamo, Reserva, reglas y capa de servicios
 ├── multas/         # Multa, Pago
+├── reportes/       # Reportes operativos y exportación CSV (sin modelos)
 └── templates/      # plantillas HTML (Bootstrap 5)
 ```
 
